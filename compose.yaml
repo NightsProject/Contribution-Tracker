@@ -34,7 +34,7 @@ services:
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/healthz')"]
+      test: ["CMD", "uv", "run", "--no-sync", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +50,7 @@ services:
 
   scheduler:
     build: .
-    command: ["python", "-m", "app.scheduler.worker"]
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.scheduler.worker"]
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-contribution}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-contribution_tracker}
       UPLOADS_DIR: /app/uploads
