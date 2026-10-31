@@ -8,6 +8,7 @@
     :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172033; background: #f4f6fa; }
     body { margin: 0; }
     header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem max(1rem, calc((100% - 64rem) / 2)); background: #fff; border-bottom: 1px solid #dfe4ec; }
+    .header-navigation { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; flex-wrap: wrap; }
     main { max-width: 64rem; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.6rem; }
     form, section, .card { background: white; border: 1px solid #dfe4ec; border-radius: .6rem; padding: 1rem; margin: 1rem 0; }
@@ -23,16 +24,14 @@
     .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
     .summary-grid .card { margin: 0; }
     textarea { box-sizing: border-box; width: 100%; max-width: 100%; padding: .6rem; font: inherit; }
-    nav { display: flex; gap: 1rem; margin-top: 1rem; }
+    nav { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+    .header-navigation nav { margin-top: 0; }
     .instructions { white-space: pre-wrap; }
-    @media (max-width: 40rem) { header { align-items: flex-start; flex-direction: column; } main { margin-top: 1rem; } }
+    @media (max-width: 40rem) { header { align-items: flex-start; flex-direction: column; } .header-navigation { align-items: flex-start; justify-content: flex-start; flex-direction: column; } main { margin-top: 1rem; } }
   </style>
 </head>
 <body>
-  <header>
-    <strong>{{ app_name }}</strong>
-    {% block header %}{% endblock %}
-  </header>
+  {% include "partials/header.html" %}
   <main>{% block content %}{% endblock %}</main>
 </body>
 </html>

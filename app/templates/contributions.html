@@ -1,13 +1,5 @@
 {% extends "base.html" %}
 {% block title %}My contributions · {{ app_name }}{% endblock %}
-{% block header %}
-  <span>{{ user.full_name }} · {{ user.role.value }}</span>
-  <a href="/dashboard">Dashboard</a>
-  <form class="inline" method="post" action="/logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Sign out</button>
-  </form>
-{% endblock %}
 {% block content %}
 <h1>My contributions</h1>
 {% if submitted %}<p role="status">Contribution submitted for administrator review.</p>{% endif %}

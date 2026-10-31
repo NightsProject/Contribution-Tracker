@@ -2,6 +2,7 @@ import re
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy import select
 
 from app.auth import new_user_session
@@ -145,6 +146,28 @@ def test_non_admin_cannot_access_account_management(client, test_db) -> None:
     response = client.get("/admin/users")
 
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    ("role", "email", "admin_links_visible"),
+    [
+        (UserRole.USER, "member@example.com", False),
+        (UserRole.ADMIN, "admin@example.com", True),
+    ],
+)
+def test_shared_header_shows_role_appropriate_navigation(
+    client, test_db, role, email, admin_links_visible
+) -> None:
+    create_user(test_db, role=role, email=email)
+    login_page = client.get("/login")
+    assert 'class="header-navigation"' not in login_page.text
+
+    assert sign_in(client, email=email).status_code == 303
+    dashboard = client.get("/dashboard")
+
+    for href in ("/dashboard", "/contributions", "/expenses"):
+        assert f'href="{href}"' in dashboard.text
+    assert ('href="/admin/users"' in dashboard.text) is admin_links_visible
 
 
 def test_admin_can_create_update_and_deactivate_accounts(client, test_db) -> None:

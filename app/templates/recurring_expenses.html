@@ -1,15 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Recurring expenses · {{ app_name }}{% endblock %}
-{% block header %}
-  <span>{{ administrator.full_name }} · Administrator</span>
-  <a href="/dashboard">Dashboard</a>
-  <a href="/expenses">Expense history</a>
-  <a href="/admin/contributions/pending">Review contributions</a>
-  <form class="inline" method="post" action="/logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Sign out</button>
-  </form>
-{% endblock %}
 {% block content %}
 <h1>Recurring expenses</h1>
 {% if saved %}<p role="status">Recurring expense changes saved.</p>{% endif %}

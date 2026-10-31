@@ -1,18 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Expenses · {{ app_name }}{% endblock %}
-{% block header %}
-  <span>{{ user.full_name }} · {{ user.role.value }}</span>
-  <a href="/dashboard">Dashboard</a>
-  <a href="/contributions">My contributions</a>
-  {% if user.role.value == "ADMIN" %}
-    <a href="/admin/contributions/pending">Review contributions</a>
-    <a href="/admin/recurring-expenses">Recurring expenses</a>
-  {% endif %}
-  <form class="inline" method="post" action="/logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Sign out</button>
-  </form>
-{% endblock %}
 {% block content %}
 <h1>Expenses</h1>
 <p>Available pool balance: <strong>₱{{ available_balance }}</strong></p>

@@ -1,14 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Payment settings · {{ app_name }}{% endblock %}
-{% block header %}
-  <span>{{ administrator.full_name }} · Administrator</span>
-  <a href="/dashboard">Dashboard</a>
-  <a href="/admin/users">Manage accounts</a>
-  <form class="inline" method="post" action="/logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Sign out</button>
-  </form>
-{% endblock %}
 {% block content %}
 <h1>Payment settings</h1>
 {% if saved %}<p role="status">Payment settings saved.</p>{% endif %}

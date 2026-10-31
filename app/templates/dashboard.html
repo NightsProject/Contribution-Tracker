@@ -1,20 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
-{% block header %}
-  <span>{{ user.full_name }} · {{ user.role.value }}</span>
-  <a href="/contributions">My contributions</a>
-  <a href="/expenses">Expense history</a>
-  {% if user.role.value == "ADMIN" %}
-    <a href="/admin/contributions/pending">Review contributions</a>
-    <a href="/admin/recurring-expenses">Recurring expenses</a>
-    <a href="/admin/payment-settings">Payment settings</a>
-    <a href="/admin/users">Manage accounts</a>
-  {% endif %}
-  <form class="inline" method="post" action="/logout">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Sign out</button>
-  </form>
-{% endblock %}
 {% block content %}
 <section>
   <h1>Dashboard</h1>

@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Manage accounts · {{ app_name }}{% endblock %}
-{% block header %}
-  <span>{{ administrator.full_name }} · Administrator</span>
-  <a href="/dashboard">Dashboard</a>
-{% endblock %}
 {% block content %}
 <h1>Manage accounts</h1>
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}

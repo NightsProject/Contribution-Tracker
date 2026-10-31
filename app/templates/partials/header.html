@@ -1,0 +1,28 @@
+<header>
+  <strong>{{ app_name }}</strong>
+  {% if user is defined %}
+    {% set nav_user = user %}
+  {% elif administrator is defined %}
+    {% set nav_user = administrator %}
+  {% endif %}
+  {% if nav_user is defined %}
+  <div class="header-navigation">
+    <span>{{ nav_user.full_name }} · {{ nav_user.role.value }}</span>
+    <nav aria-label="Primary navigation">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/contributions">My contributions</a>
+      <a href="/expenses">Expense history</a>
+      {% if nav_user.role.value == "ADMIN" %}
+        <a href="/admin/contributions/pending">Review contributions</a>
+        <a href="/admin/recurring-expenses">Recurring expenses</a>
+        <a href="/admin/payment-settings">Payment settings</a>
+        <a href="/admin/users">Manage accounts</a>
+      {% endif %}
+    </nav>
+    <form class="inline" method="post" action="/logout">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit">Sign out</button>
+    </form>
+  </div>
+  {% endif %}
+</header>
