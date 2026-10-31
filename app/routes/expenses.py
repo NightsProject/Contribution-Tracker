@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import DbSession, admin_user, current_session, require_csrf, signed_in_user
 from app.config import get_settings
-from app.models import Expense, User, UserRole, UserSession
+from app.models import AccountingReversal, Expense, User, UserRole, UserSession
 from app.services.accounting import (
+    FinancialStateError,
     InsufficientFundsError,
     InvalidFinancialRecordError,
     get_pool_balance,
     post_expense,
+    reverse_expense,
 )
 from app.services.file_storage import InvalidImageError, private_image_path, store_private_image
 from app.services.money import (
@@ -49,8 +51,9 @@ def expense_page(
     status_code: int = 200,
 ) -> HTMLResponse:
     expenses = db.execute(
-        select(Expense, User.full_name)
+        select(Expense, User.full_name, AccountingReversal.reason)
         .outerjoin(User, User.id == Expense.created_by)
+        .outerjoin(AccountingReversal, AccountingReversal.expense_id == Expense.id)
         .order_by(Expense.expense_date.desc(), Expense.created_at.desc(), Expense.id.desc())
     ).all()
     balance = get_pool_balance(db)
@@ -67,6 +70,7 @@ def expense_page(
             "max_amount_php": format_amount_input(MAX_AMOUNT_CENTAVOS),
             "max_upload_size": format_upload_size(get_settings().max_upload_size_bytes),
             "created": request.query_params.get("created") == "1",
+            "reversed": request.query_params.get("reversed") == "1",
         },
         status_code=status_code,
     )
@@ -210,3 +214,25 @@ def view_expense_receipt(
         filename=f"receipt{file_path.suffix}",
         headers={"X-Content-Type-Options": "nosniff"},
     )
+
+
+@router.post("/admin/expenses/{expense_id}/reverse")
+def reverse_posted_expense(
+    expense_id: UUID,
+    db: DbSession,
+    administrator: Annotated[User, Depends(admin_user)],
+    _csrf: CsrfDependency,
+    reason: Annotated[str, Form(max_length=1000)],
+) -> RedirectResponse:
+    try:
+        reverse_expense(
+            db,
+            expense_id=expense_id,
+            actor_user_id=administrator.id,
+            reason=reason,
+        )
+    except InvalidFinancialRecordError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except FinancialStateError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return RedirectResponse("/dashboard?transaction_action=expense_reversed", status_code=303)

@@ -3,6 +3,8 @@
 {% block content %}
 <h1>Manage accounts</h1>
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% if trashed %}<p role="status">Account moved to trash. Its financial and audit history was retained.</p>{% endif %}
+{% if restored %}<p role="status">Account restored from trash. It remains inactive until reactivated.</p>{% endif %}
 
 <section>
   <h2>Create account</h2>
@@ -26,41 +28,49 @@
 <section>
   <h2>Existing accounts</h2>
   {% if users %}
-  <table>
-    <thead><tr><th>Account</th><th>Update</th></tr></thead>
-    <tbody>
-      {% for account in users %}
-      <tr>
-        <td>
-          <strong>{{ account.full_name }}</strong><br>
-          {{ account.email }}<br>
-          <span class="muted">{{ account.role.value }} · {{ "Active" if account.is_active else "Inactive" }}</span>
-        </td>
-        <td>
-          <form method="post" action="/admin/users/{{ account.id }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <label for="name-{{ account.id }}">Full name</label>
-            <input id="name-{{ account.id }}" name="full_name" value="{{ account.full_name }}" maxlength="200" required>
-            <label for="email-{{ account.id }}">Email</label>
-            <input id="email-{{ account.id }}" name="email" type="email" value="{{ account.email }}" maxlength="320" required>
-            <label for="role-{{ account.id }}">Role</label>
-            <select id="role-{{ account.id }}" name="role">
-              <option value="USER" {% if account.role.value == "USER" %}selected{% endif %}>User</option>
-              <option value="ADMIN" {% if account.role.value == "ADMIN" %}selected{% endif %}>Administrator</option>
-            </select>
-            <label>
-              <input type="checkbox" name="is_active" value="on" {% if account.is_active %}checked{% endif %}>
-              Active
-            </label>
-            <label for="password-{{ account.id }}">Set new password (optional, at least 12 characters)</label>
-            <input id="password-{{ account.id }}" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password">
-            <button type="submit">Save account</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-scroll table-scroll--wide" role="region" aria-label="Existing accounts" tabindex="0">
+    <table>
+      <thead><tr><th>Account</th><th>Update</th></tr></thead>
+      <tbody>
+        {% for account in users %}
+        <tr>
+          <td>
+            <strong>{{ account.full_name }}</strong><br>
+            {{ account.email }}<br>
+            <span class="muted">{{ account.role.value }} · {{ "Active" if account.is_active else "Inactive" }}</span>
+          </td>
+          <td>
+            <form method="post" action="/admin/users/{{ account.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <label for="name-{{ account.id }}">Full name</label>
+              <input id="name-{{ account.id }}" name="full_name" value="{{ account.full_name }}" maxlength="200" required>
+              <label for="email-{{ account.id }}">Email</label>
+              <input id="email-{{ account.id }}" name="email" type="email" value="{{ account.email }}" maxlength="320" required>
+              <label for="role-{{ account.id }}">Role</label>
+              <select id="role-{{ account.id }}" name="role">
+                <option value="USER" {% if account.role.value == "USER" %}selected{% endif %}>User</option>
+                <option value="ADMIN" {% if account.role.value == "ADMIN" %}selected{% endif %}>Administrator</option>
+              </select>
+              <label>
+                <input type="checkbox" name="is_active" value="on" {% if account.is_active %}checked{% endif %}>
+                Active
+              </label>
+              <label for="password-{{ account.id }}">Set new password (optional, at least 12 characters)</label>
+              <input id="password-{{ account.id }}" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password">
+              <button type="submit">Save account</button>
+            </form>
+            {% if account.id != administrator.id %}
+            <form method="post" action="/admin/trash/accounts/{{ account.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit">Move account to trash</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p>No accounts found.</p>
   {% endif %}

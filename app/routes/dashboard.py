@@ -9,6 +9,7 @@ from sqlalchemy import String, cast, func, literal, select, union_all
 from app.auth import DbSession, current_session, signed_in_user
 from app.config import get_settings
 from app.models import (
+    AccountingReversal,
     Contribution,
     ContributionStatus,
     Expense,
@@ -67,6 +68,12 @@ def transaction_query(user: User, request: Request):
             Contribution.payment_reference.label("description"),
             Contribution.amount_centavos.label("amount_centavos"),
             cast(Contribution.status, String).label("status"),
+            func.coalesce(
+                Contribution.void_reason,
+                select(AccountingReversal.reason)
+                .where(AccountingReversal.contribution_id == Contribution.id)
+                .scalar_subquery(),
+            ).label("reason"),
         )
         .join(User, User.id == Contribution.user_id)
     )
@@ -83,6 +90,10 @@ def transaction_query(user: User, request: Request):
             Expense.description.label("description"),
             (-Expense.amount_centavos).label("amount_centavos"),
             cast(Expense.status, String).label("status"),
+            select(AccountingReversal.reason)
+            .where(AccountingReversal.expense_id == Expense.id)
+            .scalar_subquery()
+            .label("reason"),
         )
         .outerjoin(User, User.id == Expense.created_by)
         .outerjoin(RecurringExpense, RecurringExpense.id == Expense.recurring_expense_id)
@@ -188,5 +199,6 @@ def dashboard(
             "page": page_number,
             "page_count": page_count,
             "total_transactions": total_transactions,
+            "transaction_action": request.query_params.get("transaction_action", ""),
         },
     )
