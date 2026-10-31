@@ -45,7 +45,7 @@ disabled as soon as an administrator account exists.
 Alternatively, create the first administrator from the command line:
 
 ```sh
-docker compose exec web python -m app.cli create-admin
+docker compose exec web uv run --no-sync python -m app.cli create-admin
 ```
 
 The command prompts for the administrator details and password and refuses to
@@ -133,11 +133,13 @@ recovery before relying on backups for production recovery.
 
 ## Run tests
 
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first.
+The committed `uv.lock` pins the resolved dependencies for local development
+and container builds.
+
 ```sh
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements-dev.txt
-pytest
+uv sync --all-groups
+uv run pytest
 ```
 
 ## Database migrations
@@ -145,8 +147,8 @@ pytest
 Create a new migration after changing the SQLAlchemy models:
 
 ```sh
-alembic revision --autogenerate -m "describe schema change"
-alembic upgrade head
+uv run alembic revision --autogenerate -m "describe schema change"
+uv run alembic upgrade head
 ```
 
 Set `DATABASE_URL` when running Alembic outside Compose. The default targets a

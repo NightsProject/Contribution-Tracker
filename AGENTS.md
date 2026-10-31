@@ -15,6 +15,6 @@
 
 ## Validation
 
-- Run the focused tests for the changed behavior, then the full test suite with `pytest` when practical.
+- Run the focused tests for the changed behavior with `uv run pytest`, then the full test suite when practical.
 - For database model changes, create an Alembic migration and verify migrations remain compatible with the existing schema.
 - Run `git diff --check` before completing changes.
