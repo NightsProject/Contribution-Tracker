@@ -14,16 +14,28 @@ processing, and versioned Alembic migrations.
 
 ```sh
 cp .env.example .env
+# Edit .env and set a unique, random POSTGRES_PASSWORD before starting.
 docker compose up --build
 ```
 
+Generate a URL-safe database password with `openssl rand -hex 32` and put the
+result in `.env`; the value is used in the SQLAlchemy connection URL.
+
 The web service is available at <http://localhost:8000>; `/healthz` provides a
 liveness check. Compose runs database migrations before starting the web
-service and persists PostgreSQL data and uploads in named volumes.
+service and persists PostgreSQL data and uploads in named volumes. The web
+port binds to localhost only; PostgreSQL is not published to the host.
 
-The credentials in `.env.example` are for local development only. Replace them
-with strong, unique values before using any non-local deployment. For an
-HTTPS-terminated deployment, set `SESSION_COOKIE_SECURE=true`.
+For HTTPS deployment, point the domain in `APP_DOMAIN` at the server, set
+`SESSION_COOKIE_SECURE=true`, and start the optional Caddy proxy profile:
+
+```sh
+docker compose --profile production up --build -d
+```
+
+Caddy obtains and renews TLS certificates automatically. Expose only ports 80
+and 443 publicly; keep port 8000 bound to localhost. Do not use the example
+password in a deployed environment.
 
 Create the first administrator after the database is running:
 
@@ -60,6 +72,49 @@ instructions and QR details, and provides a paginated transaction history with
 account, type, status, text, and date filters. Administrators manage payment
 details and QR uploads from **Payment settings**; QR files are private and
 visible only to signed-in users.
+
+## Backups and recovery
+
+Back up the database and uploads together. The script briefly stops the web
+and scheduler services to capture a consistent pair, then restarts only the
+services that were running before the backup:
+
+```sh
+./scripts/backup.sh /var/backups/contribution-tracker
+```
+
+Backups include SHA-256 checksums. Store them off-host with access controls and
+retention appropriate to your organization, and encrypt them at rest and in
+transit. To schedule daily backups on a
+Linux host, adjust the paths in `deploy/contribution-tracker-backup.service`,
+then install and enable the provided systemd service and timer:
+
+```sh
+sudo cp deploy/contribution-tracker-backup.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now contribution-tracker-backup.timer
+```
+
+To restore, stop web and scheduler, verify the manifest, and explicitly
+acknowledge that the database will be replaced:
+
+```sh
+docker compose stop web scheduler
+(
+  cd /var/backups/contribution-tracker
+  sha256sum --check TIMESTAMP-SHA256SUMS
+)
+CONFIRM_RESTORE=yes \
+BACKUP_CHECKSUMS=/var/backups/contribution-tracker/TIMESTAMP-SHA256SUMS \
+  /opt/contribution-tracker/scripts/restore.sh \
+  /var/backups/contribution-tracker/TIMESTAMP-database.dump \
+  /var/backups/contribution-tracker/TIMESTAMP-uploads.tar.gz
+docker compose up -d
+```
+
+Periodically restore a backup into a separate test environment and verify
+login, transaction history, private proof/receipt/QR access, and scheduler
+recovery before relying on backups for production recovery.
 
 ## Run tests
 

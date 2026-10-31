@@ -1,0 +1,9 @@
+[Unit]
+Description=Back up Contribution Tracker database and uploads
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/contribution-tracker
+ExecStart=/opt/contribution-tracker/scripts/backup.sh /var/backups/contribution-tracker
