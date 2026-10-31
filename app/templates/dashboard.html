@@ -71,21 +71,23 @@
     <button type="submit">Filter transactions</button>
   </form>
   {% if transactions %}
-  <table>
-    <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Description/reference</th><th>Amount</th><th>Status</th></tr></thead>
-    <tbody>
-      {% for transaction in transactions %}
-      <tr>
-        <td>{{ format_timestamp(transaction.event_at) }}</td>
-        <td>{{ transaction.account }}</td>
-        <td>{{ transaction.type }}</td>
-        <td>{{ transaction.description }}</td>
-        <td>{% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}</td>
-        <td>{{ transaction.status }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-scroll" role="region" aria-label="Transaction history" tabindex="0">
+    <table>
+      <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Description/reference</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for transaction in transactions %}
+        <tr>
+          <td>{{ format_timestamp(transaction.event_at) }}</td>
+          <td>{{ transaction.account }}</td>
+          <td>{{ transaction.type }}</td>
+          <td>{{ transaction.description }}</td>
+          <td>{% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}</td>
+          <td>{{ transaction.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p>No transactions match the selected filters.</p>
   {% endif %}

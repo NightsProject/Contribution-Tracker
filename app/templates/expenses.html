@@ -29,22 +29,24 @@
 <section>
   <h2>Expense history</h2>
   {% if expenses %}
-  <table>
-    <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Recorded by</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead>
-    <tbody>
-      {% for expense, creator_name in expenses %}
-      <tr>
-        <td>{{ expense.expense_date }}</td>
-        <td>{{ expense.description }}</td>
-        <td>{{ expense.category }}</td>
-        <td>{{ creator_name or "Scheduled expense" }}</td>
-        <td>−₱{{ format_amount(expense.amount_centavos) }}</td>
-        <td>{{ expense.status.value }}</td>
-        <td>{% if expense.receipt_file_key %}<a href="/expenses/{{ expense.id }}/receipt">View receipt</a>{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-scroll" role="region" aria-label="Expense history" tabindex="0">
+    <table>
+      <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Recorded by</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead>
+      <tbody>
+        {% for expense, creator_name in expenses %}
+        <tr>
+          <td>{{ expense.expense_date }}</td>
+          <td>{{ expense.description }}</td>
+          <td>{{ expense.category }}</td>
+          <td>{{ creator_name or "Scheduled expense" }}</td>
+          <td>−₱{{ format_amount(expense.amount_centavos) }}</td>
+          <td>{{ expense.status.value }}</td>
+          <td>{% if expense.receipt_file_key %}<a href="/expenses/{{ expense.id }}/receipt">View receipt</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p>No expenses recorded.</p>
   {% endif %}

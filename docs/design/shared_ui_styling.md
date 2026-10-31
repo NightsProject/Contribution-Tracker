@@ -12,7 +12,11 @@ limited to semantic classes for page-specific layout needs.
   controls, buttons, tables, navigation, focus states, and status messages.
 - Authentication pages use a narrow centered card. Dashboard transaction
   filters use a responsive grid that collapses to one column on small screens.
-- Tables remain horizontally scrollable on narrow viewports. Summary cards,
-  navigation, and forms adapt to mobile widths.
+- Summary cards and forms adapt to mobile widths, with full-width action
+  buttons on small screens.
+- Primary navigation stays on one swipeable row on narrow viewports so it
+  remains compact and every destination is accessible.
+- Tables use labeled, keyboard-focusable horizontal scroll regions on narrow
+  viewports rather than compressing columns into unreadable widths.
 - Focus-visible styling, reduced-motion support, and distinct success/error
   message colors improve accessibility.
