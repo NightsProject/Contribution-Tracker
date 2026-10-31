@@ -3,9 +3,9 @@ import getpass
 
 from app.database import SessionLocal
 from app.security import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, valid_email
+from app.services.accounts import EmailAlreadyInUseError
 from app.services.bootstrap import (
     AdminAlreadyExistsError,
-    EmailAlreadyInUseError,
     create_initial_admin,
 )
 

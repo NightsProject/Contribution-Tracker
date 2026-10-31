@@ -1,16 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import AuditLog, User, UserRole
-from app.security import hash_password
+from app.models import User, UserRole
 from app.services.accounting import acquire_accounting_lock
+from app.services.accounts import EmailAlreadyInUseError, create_account
 
 
 class AdminAlreadyExistsError(Exception):
-    pass
-
-
-class EmailAlreadyInUseError(Exception):
     pass
 
 
@@ -31,24 +27,11 @@ def create_initial_admin(
     acquire_accounting_lock(db)
     if has_admin_account(db):
         raise AdminAlreadyExistsError
-    if db.scalar(select(User.id).where(User.email == email).limit(1)) is not None:
-        raise EmailAlreadyInUseError
-
-    user = User(
+    return create_account(
+        db,
         full_name=full_name,
         email=email,
-        password_hash=hash_password(password),
+        password=password,
         role=UserRole.ADMIN,
-        is_active=True,
+        action="user.bootstrap_admin_created",
     )
-    db.add(user)
-    db.flush()
-    db.add(
-        AuditLog(
-            action="user.bootstrap_admin_created",
-            entity_type="user",
-            entity_id=str(user.id),
-            details={"email": email, "role": UserRole.ADMIN.value},
-        )
-    )
-    return user

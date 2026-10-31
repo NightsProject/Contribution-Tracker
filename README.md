@@ -53,6 +53,10 @@ create an administrator if one already exists. Administrators can create,
 update, deactivate, or change the roles/passwords of accounts from
 **Manage accounts** in the dashboard. Passwords must be at least 12 characters.
 
+Visitors can also sign up from the sign-in page. New accounts are immediately
+active contributor accounts with the `USER` role and are signed in after
+creation; public sign-up cannot grant administrator access.
+
 Signed-in users can submit contributions with a PHP amount, payment reference,
 payment date, and optional JPEG/PNG/WebP proof image. Proof files are size- and
 content-validated, normalized, stored outside the public static directory, and

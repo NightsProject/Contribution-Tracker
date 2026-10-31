@@ -195,6 +195,116 @@ def test_first_admin_setup_rejects_existing_email_and_stale_setup(client, test_d
         assert len(administrators) == 1
 
 
+def test_public_signup_creates_and_signs_in_a_user_role_account(client, test_db) -> None:
+    login_page = client.get("/login")
+    assert 'href="/signup"' in login_page.text
+    signup_page = client.get("/signup")
+    response = client.post(
+        "/signup",
+        data={
+            "csrf_token": get_csrf(signup_page),
+            "full_name": "New Contributor",
+            "email": "CONTRIBUTOR@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+            "role": "ADMIN",
+        },
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/dashboard"
+    dashboard = client.get("/dashboard")
+    assert dashboard.status_code == 200
+    assert "New Contributor" in dashboard.text
+    assert 'href="/admin/users"' not in dashboard.text
+    with test_db() as db:
+        user = db.scalar(select(User).where(User.email == "contributor@example.com"))
+        assert user is not None
+        assert user.role == UserRole.USER
+        assert user.is_active
+        session_id = client.cookies.get("session_id")
+        assert session_id is not None
+        stored_session = db.get(UserSession, hash_session_id(session_id))
+        assert stored_session is not None
+        assert stored_session.user_id == user.id
+        event = db.scalar(select(AuditLog).where(AuditLog.action == "user.signed_up"))
+        assert event is not None
+        assert event.entity_id == str(user.id)
+        assert event.actor_user_id is None
+
+    assert client.get("/signup").headers["location"] == "/dashboard"
+
+
+def test_public_signup_validates_csrf_details_and_duplicate_addresses(client, test_db) -> None:
+    create_user(test_db, email="existing@example.com")
+    signup_page = client.get("/signup")
+    csrf_token = get_csrf(signup_page)
+
+    csrf_rejected = client.post(
+        "/signup",
+        data={
+            "csrf_token": "invalid",
+            "full_name": "New Contributor",
+            "email": "new@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+    assert csrf_rejected.status_code == 403
+
+    invalid_details = client.post(
+        "/signup",
+        data={
+            "csrf_token": csrf_token,
+            "full_name": "New Contributor",
+            "email": "new@example.com",
+            "password": "short",
+            "password_confirmation": PASSWORD,
+        },
+    )
+    assert invalid_details.status_code == 400
+    assert "matching passwords" in invalid_details.text
+
+    duplicate_email = client.post(
+        "/signup",
+        data={
+            "csrf_token": csrf_token,
+            "full_name": "Existing Contributor",
+            "email": "existing@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+    assert duplicate_email.status_code == 400
+    assert "Unable to create an account" in duplicate_email.text
+    assert "already in use" not in duplicate_email.text
+    with test_db() as db:
+        users = db.scalars(select(User)).all()
+        assert len(users) == 1
+
+
+def test_signed_in_user_cannot_submit_first_admin_setup(client, test_db) -> None:
+    create_user(test_db)
+    assert sign_in(client).status_code == 303
+    dashboard = client.get("/dashboard")
+
+    response = client.post(
+        "/setup",
+        data={
+            "csrf_token": get_csrf(dashboard),
+            "full_name": "Unexpected Administrator",
+            "email": "unexpected-admin@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/dashboard"
+    with test_db() as db:
+        assert db.scalar(select(User.id).where(User.role == UserRole.ADMIN)) is None
+
+
 def test_expired_session_is_rejected_and_removed(client, test_db) -> None:
     user_id = create_user(test_db)
     user_session, raw_session_id = new_user_session(user_id)

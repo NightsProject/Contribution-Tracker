@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy import case, delete, or_, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth import DbSession, current_session, new_user_session, require_csrf
 from app.config import get_settings
 from app.database import get_db
-from app.models import LoginAttempt, User, UserSession
+from app.models import LoginAttempt, User, UserRole, UserSession
 from app.security import (
     DUMMY_PASSWORD_HASH,
     MAX_PASSWORD_LENGTH,
@@ -25,10 +25,10 @@ from app.security import (
 )
 from app.services.bootstrap import (
     AdminAlreadyExistsError,
-    EmailAlreadyInUseError,
     create_initial_admin,
     has_admin_account,
 )
+from app.services.accounts import EmailAlreadyInUseError, create_account
 from app.web import templates
 
 router = APIRouter()
@@ -40,7 +40,7 @@ PasswordForm = Annotated[str, Form(max_length=1024)]
 PasswordConfirmationForm = Annotated[str, Form(max_length=1024)]
 
 
-def set_session_cookie(response: RedirectResponse, session_id: str) -> None:
+def set_session_cookie(response: Response, session_id: str) -> None:
     settings = get_settings()
     response.set_cookie(
         "session_id",
@@ -70,8 +70,12 @@ def active_session(user_session: UserSession) -> bool:
     return expiry > datetime.now(UTC)
 
 
-@router.get("/login", response_class=HTMLResponse, name="login", response_model=None)
-def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectResponse:
+def public_form_session(
+    request: Request,
+    db: Session,
+    *,
+    authenticated_redirect: str,
+) -> tuple[UserSession, str] | RedirectResponse:
     session_id = request.cookies.get("session_id")
     user_session = None
     if (
@@ -88,7 +92,7 @@ def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
     if user_session is not None and user_session.user_id is not None:
         user = db.get(User, user_session.user_id)
         if user is not None and user.is_active:
-            return RedirectResponse("/", status_code=303)
+            return RedirectResponse(authenticated_redirect, status_code=303)
         db.delete(user_session)
         db.commit()
         user_session = None
@@ -99,6 +103,15 @@ def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
         db.commit()
     else:
         session_id = request.cookies.get("session_id", "")
+    return user_session, session_id
+
+
+@router.get("/login", response_class=HTMLResponse, name="login", response_model=None)
+def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectResponse:
+    session = public_form_session(request, db, authenticated_redirect="/")
+    if isinstance(session, RedirectResponse):
+        return session
+    user_session, session_id = session
 
     response = templates.TemplateResponse(
         request=request,
@@ -109,15 +122,7 @@ def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
             "setup_available": not has_admin_account(db),
         },
     )
-    response.set_cookie(
-        "session_id",
-        session_id,
-        max_age=get_settings().session_max_age_seconds,
-        httponly=True,
-        secure=get_settings().session_cookie_secure,
-        samesite="lax",
-        path="/",
-    )
+    set_session_cookie(response, session_id)
     return response
 
 
@@ -126,32 +131,10 @@ def setup_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
     if has_admin_account(db):
         return RedirectResponse("/login", status_code=303)
 
-    session_id = request.cookies.get("session_id")
-    user_session = None
-    if (
-        session_id is not None
-        and len(session_id) == 64
-        and all(character in "0123456789abcdef" for character in session_id)
-    ):
-        user_session = db.get(UserSession, hash_session_id(session_id))
-    if user_session is not None and not active_session(user_session):
-        db.delete(user_session)
-        db.commit()
-        user_session = None
-    if user_session is not None and user_session.user_id is not None:
-        user = db.get(User, user_session.user_id)
-        if user is not None and user.is_active:
-            return RedirectResponse("/dashboard", status_code=303)
-        db.delete(user_session)
-        db.commit()
-        user_session = None
-
-    if user_session is None:
-        user_session, session_id = new_user_session()
-        db.add(user_session)
-        db.commit()
-    else:
-        session_id = request.cookies.get("session_id", "")
+    session = public_form_session(request, db, authenticated_redirect="/dashboard")
+    if isinstance(session, RedirectResponse):
+        return session
+    user_session, session_id = session
 
     response = templates.TemplateResponse(
         request=request,
@@ -163,15 +146,96 @@ def setup_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
             "email": "",
         },
     )
-    response.set_cookie(
-        "session_id",
-        session_id,
-        max_age=get_settings().session_max_age_seconds,
-        httponly=True,
-        secure=get_settings().session_cookie_secure,
-        samesite="lax",
-        path="/",
+    set_session_cookie(response, session_id)
+    return response
+
+
+@router.get("/signup", response_class=HTMLResponse, name="signup", response_model=None)
+def signup_page(request: Request, db: DbSession) -> HTMLResponse | RedirectResponse:
+    session = public_form_session(request, db, authenticated_redirect="/dashboard")
+    if isinstance(session, RedirectResponse):
+        return session
+    user_session, session_id = session
+    response = templates.TemplateResponse(
+        request=request,
+        name="signup.html",
+        context={
+            "csrf_token": user_session.data["csrf_token"],
+            "error": None,
+            "full_name": "",
+            "email": "",
+        },
     )
+    set_session_cookie(response, session_id)
+    return response
+
+
+@router.post("/signup", response_class=HTMLResponse, response_model=None)
+def signup(
+    request: Request,
+    db: DbSession,
+    user_session: Annotated[UserSession, Depends(current_session)],
+    _csrf: Annotated[None, Depends(require_csrf)],
+    full_name: Annotated[str, Form(max_length=200)],
+    email: EmailForm,
+    password: PasswordForm,
+    password_confirmation: PasswordConfirmationForm,
+) -> HTMLResponse | RedirectResponse:
+    if user_session.user_id is not None:
+        return RedirectResponse("/dashboard", status_code=303)
+
+    name = full_name.strip()
+    normalized_email = email.strip().lower()
+    if (
+        not name
+        or not valid_email(normalized_email)
+        or not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH
+        or password != password_confirmation
+    ):
+        return templates.TemplateResponse(
+            request=request,
+            name="signup.html",
+            context={
+                "csrf_token": user_session.data["csrf_token"],
+                "error": (
+                    "Enter a name, valid email, matching passwords, and a password "
+                    f"between {MIN_PASSWORD_LENGTH} and {MAX_PASSWORD_LENGTH} characters."
+                ),
+                "full_name": name,
+                "email": normalized_email,
+            },
+            status_code=400,
+        )
+
+    try:
+        user = create_account(
+            db,
+            full_name=name,
+            email=normalized_email,
+            password=password,
+            role=UserRole.USER,
+            action="user.signed_up",
+        )
+    except EmailAlreadyInUseError:
+        db.rollback()
+        return templates.TemplateResponse(
+            request=request,
+            name="signup.html",
+            context={
+                "csrf_token": user_session.data["csrf_token"],
+                "error": "Unable to create an account with those details.",
+                "full_name": name,
+                "email": normalized_email,
+            },
+            status_code=400,
+        )
+
+    db.delete(user_session)
+    authenticated_session, session_id = new_user_session(user.id)
+    db.add(authenticated_session)
+    db.commit()
+    response = RedirectResponse("/dashboard", status_code=303)
+    set_session_cookie(response, session_id)
     return response
 
 
@@ -186,6 +250,9 @@ def create_first_admin(
     password: PasswordForm,
     password_confirmation: PasswordConfirmationForm,
 ) -> HTMLResponse | RedirectResponse:
+    if user_session.user_id is not None:
+        return RedirectResponse("/dashboard", status_code=303)
+
     name = full_name.strip()
     normalized_email = email.strip().lower()
     if (

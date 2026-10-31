@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session
 from app.auth import DbSession, admin_user, current_session, require_csrf
 from app.models import AuditLog, User, UserRole, UserSession
 from app.security import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, hash_password, valid_email
+from app.services.accounts import (
+    EmailAlreadyInUseError,
+    create_account,
+    is_duplicate_email_error,
+)
 from app.web import templates
 
 router = APIRouter(prefix="/admin")
@@ -22,13 +27,6 @@ def parse_role(role: str) -> UserRole | None:
         return UserRole(role)
     except ValueError:
         return None
-
-
-def is_duplicate_email_error(error: IntegrityError) -> bool:
-    constraint_name = getattr(getattr(error.orig, "diag", None), "constraint_name", None)
-    if constraint_name == "uq_users_email":
-        return True
-    return "UNIQUE constraint failed: users.email" in str(error.orig)
 
 
 def users_page(
@@ -93,26 +91,22 @@ def create_user(
             400,
         )
 
-    user = User(
-        full_name=name,
-        email=normalized_email,
-        password_hash=hash_password(password),
-        role=user_role,
-        is_active=True,
-    )
-    db.add(user)
     try:
-        db.flush()
-        db.add(
-            AuditLog(
-                actor_user_id=administrator.id,
-                action="user.created",
-                entity_type="user",
-                entity_id=str(user.id),
-                details={"email": normalized_email, "role": user_role.value},
-            )
+        create_account(
+            db,
+            full_name=name,
+            email=normalized_email,
+            password=password,
+            role=user_role,
+            action="user.created",
+            actor_user_id=administrator.id,
         )
         db.commit()
+    except EmailAlreadyInUseError:
+        db.rollback()
+        return users_page(
+            request, db, administrator, csrf_token, "That email address is already in use.", 409
+        )
     except IntegrityError as error:
         db.rollback()
         if not is_duplicate_email_error(error):
