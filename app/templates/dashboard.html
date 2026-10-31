@@ -34,6 +34,10 @@
 
 <section>
   <h2>Transaction history</h2>
+  {% if transaction_action == "voided" %}<p role="status">Contribution voided. Its reason is recorded and it did not affect the pool balance.</p>{% endif %}
+  {% if transaction_action == "refunded" %}<p role="status">Contribution refund recorded and reversed in the ledger. Process any actual payment refund separately.</p>{% endif %}
+  {% if transaction_action == "expense_reversed" %}<p role="status">Expense reversed. Its reason is recorded.</p>{% endif %}
+  {% if user.role.value == "ADMIN" %}<p class="muted">These actions record ledger corrections; they do not send or return money.</p>{% endif %}
   <form class="filter-form" method="get" action="/dashboard">
     <div class="field">
       <label for="search">Search account, reference, or description</label>
@@ -55,7 +59,7 @@
       <label for="status">Status</label>
       <select id="status" name="status">
       <option value="">All</option>
-      {% for status in ["PENDING", "APPROVED", "REJECTED", "REVERSED", "POSTED"] %}
+      {% for status in ["PENDING", "APPROVED", "REJECTED", "VOIDED", "REVERSED", "POSTED"] %}
       <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
       {% endfor %}
       </select>
@@ -73,16 +77,45 @@
   {% if transactions %}
   <div class="table-scroll" role="region" aria-label="Transaction history" tabindex="0">
     <table>
-      <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Description/reference</th><th>Amount</th><th>Status</th></tr></thead>
+      <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Description/reference</th><th>Amount</th><th>Status</th>{% if user.role.value == "ADMIN" %}<th>Actions</th>{% endif %}</tr></thead>
       <tbody>
         {% for transaction in transactions %}
         <tr>
           <td>{{ format_timestamp(transaction.event_at) }}</td>
           <td>{{ transaction.account }}</td>
           <td>{{ transaction.type }}</td>
-          <td>{{ transaction.description }}</td>
+          <td>
+            {{ transaction.description }}
+            {% if transaction.reason %}<br><span class="muted">Reason: {{ transaction.reason }}</span>{% endif %}
+          </td>
           <td>{% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}</td>
           <td>{{ transaction.status }}</td>
+          {% if user.role.value == "ADMIN" %}
+          <td>
+            {% if transaction.type == "contribution" and transaction.status == "PENDING" %}
+            <form method="post" action="/admin/contributions/{{ transaction.id }}/void">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <label for="reason-{{ transaction.id }}">Void reason</label>
+              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required>
+              <button type="submit">Void submission</button>
+            </form>
+            {% elif transaction.type == "contribution" and transaction.status == "APPROVED" %}
+            <form method="post" action="/admin/contributions/{{ transaction.id }}/refund">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <label for="reason-{{ transaction.id }}">Refund reason</label>
+              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required>
+              <button type="submit">Record refund</button>
+            </form>
+            {% elif transaction.type == "expense" and transaction.status == "POSTED" %}
+            <form method="post" action="/admin/expenses/{{ transaction.id }}/reverse">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <label for="reason-{{ transaction.id }}">Reversal reason</label>
+              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required>
+              <button type="submit">Reverse expense</button>
+            </form>
+            {% endif %}
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

@@ -37,7 +37,11 @@ def users_page(
     error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    users = db.scalars(select(User).order_by(User.full_name, User.email)).all()
+    users = db.scalars(
+        select(User)
+        .where(User.trashed_at.is_(None))
+        .order_by(User.full_name, User.email)
+    ).all()
     return templates.TemplateResponse(
         request=request,
         name="admin_users.html",
@@ -46,6 +50,8 @@ def users_page(
             "csrf_token": csrf_token,
             "users": users,
             "error": error,
+            "trashed": request.query_params.get("trashed") == "1",
+            "restored": request.query_params.get("restored") == "1",
         },
         status_code=status_code,
     )
@@ -132,7 +138,7 @@ def update_user(
     password: Annotated[str, Form(max_length=1024)] = "",
 ) -> HTMLResponse | RedirectResponse:
     user = db.get(User, user_id)
-    if user is None:
+    if user is None or user.trashed_at is not None:
         return users_page(request, db, administrator, csrf_token, "Account not found.", 404)
 
     name = full_name.strip()

@@ -51,7 +51,13 @@ docker compose exec web python -m app.cli create-admin
 The command prompts for the administrator details and password and refuses to
 create an administrator if one already exists. Administrators can create,
 update, deactivate, or change the roles/passwords of accounts from
-**Manage accounts** in the dashboard. Passwords must be at least 12 characters.
+**Manage accounts** in the dashboard. Administrators can move accounts to
+**Trash** and restore them; trashed accounts are inactive, and their financial
+history is retained. Pending contributions can be voided, approved contributions
+recorded as refunded, and posted expenses reversed with a required reason.
+These corrections are audited and update the pool balance where applicable;
+they do not initiate external payments. Passwords must be at least 12
+characters.
 
 Visitors can also sign up from the sign-in page. New accounts are immediately
 active contributor accounts with the `USER` role and are signed in after

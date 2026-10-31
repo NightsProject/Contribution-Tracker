@@ -13,6 +13,7 @@ from app.routes import (
     expenses,
     payment_settings,
     recurring_expenses,
+    trash,
 )
 
 app = FastAPI(title=get_settings().app_name)
@@ -52,6 +53,7 @@ app.include_router(expenses.router)
 app.include_router(payment_settings.router)
 app.include_router(recurring_expenses.router)
 app.include_router(admin.router)
+app.include_router(trash.router)
 
 
 @app.get("/", tags=["status"])

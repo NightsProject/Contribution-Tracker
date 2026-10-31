@@ -186,7 +186,7 @@ def reverse_contribution(
     db.add(
         AuditLog(
             actor_user_id=actor_user_id,
-            action="contribution.reversed",
+            action="contribution.refunded",
             entity_type="contribution",
             entity_id=str(contribution.id),
             details={

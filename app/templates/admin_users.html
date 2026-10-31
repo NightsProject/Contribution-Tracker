@@ -3,6 +3,8 @@
 {% block content %}
 <h1>Manage accounts</h1>
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% if trashed %}<p role="status">Account moved to trash. Its financial and audit history was retained.</p>{% endif %}
+{% if restored %}<p role="status">Account restored from trash. It remains inactive until reactivated.</p>{% endif %}
 
 <section>
   <h2>Create account</h2>
@@ -57,6 +59,12 @@
               <input id="password-{{ account.id }}" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password">
               <button type="submit">Save account</button>
             </form>
+            {% if account.id != administrator.id %}
+            <form method="post" action="/admin/trash/accounts/{{ account.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit">Move account to trash</button>
+            </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

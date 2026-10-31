@@ -4,6 +4,7 @@
 <h1>Expenses</h1>
 <p>Available pool balance: <strong>₱{{ available_balance }}</strong></p>
 {% if created %}<p role="status">Expense posted.</p>{% endif %}
+{% if reversed %}<p role="status">Expense reversed. Its reason is recorded.</p>{% endif %}
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
 {% if user.role.value == "ADMIN" %}
@@ -31,17 +32,29 @@
   {% if expenses %}
   <div class="table-scroll" role="region" aria-label="Expense history" tabindex="0">
     <table>
-      <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Recorded by</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead>
+      <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Recorded by</th><th>Amount</th><th>Status</th><th>Receipt</th>{% if user.role.value == "ADMIN" %}<th>Action</th>{% endif %}</tr></thead>
       <tbody>
-        {% for expense, creator_name in expenses %}
+        {% for expense, creator_name, reversal_reason in expenses %}
         <tr>
           <td>{{ expense.expense_date }}</td>
           <td>{{ expense.description }}</td>
           <td>{{ expense.category }}</td>
           <td>{{ creator_name or "Scheduled expense" }}</td>
           <td>−₱{{ format_amount(expense.amount_centavos) }}</td>
-          <td>{{ expense.status.value }}</td>
+          <td>{{ expense.status.value }}{% if reversal_reason %}<br><span class="muted">Reason: {{ reversal_reason }}</span>{% endif %}</td>
           <td>{% if expense.receipt_file_key %}<a href="/expenses/{{ expense.id }}/receipt">View receipt</a>{% endif %}</td>
+          {% if user.role.value == "ADMIN" %}
+          <td>
+            {% if expense.status.value == "POSTED" %}
+            <form method="post" action="/admin/expenses/{{ expense.id }}/reverse">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <label for="reverse-reason-{{ expense.id }}">Reversal reason</label>
+              <input id="reverse-reason-{{ expense.id }}" name="reason" maxlength="1000" required>
+              <button type="submit">Reverse expense</button>
+            </form>
+            {% endif %}
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

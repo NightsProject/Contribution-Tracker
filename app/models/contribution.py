@@ -23,6 +23,7 @@ class ContributionStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    VOIDED = "VOIDED"
     REVERSED = "REVERSED"
 
 
@@ -56,4 +57,5 @@ class Contribution(TimestampMixin, Base):
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     rejection_reason: Mapped[str | None] = mapped_column(String(1000))
+    void_reason: Mapped[str | None] = mapped_column(String(1000))
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

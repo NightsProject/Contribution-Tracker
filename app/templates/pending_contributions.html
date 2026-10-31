@@ -26,6 +26,12 @@
       <input id="reason-{{ contribution.id }}" name="reason" maxlength="1000" required>
       <button type="submit">Reject contribution</button>
     </form>
+    <form method="post" action="/admin/contributions/{{ contribution.id }}/void">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label for="void-reason-{{ contribution.id }}">Void reason</label>
+      <input id="void-reason-{{ contribution.id }}" name="reason" maxlength="1000" required>
+      <button type="submit">Void submission</button>
+    </form>
   </section>
   {% endfor %}
 {% else %}

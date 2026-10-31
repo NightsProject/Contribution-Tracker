@@ -34,7 +34,10 @@
           <td>{{ contribution.payment_date }}</td>
           <td>{{ contribution.payment_reference }}</td>
           <td>₱{{ format_amount(contribution.amount_centavos) }}</td>
-          <td>{{ contribution.status.value }}</td>
+          <td>
+            {{ contribution.status.value }}
+            {% if contribution.void_reason %}<br><span class="muted">Reason: {{ contribution.void_reason }}</span>{% endif %}
+          </td>
           <td>
             {% if contribution.proof_file_key %}<a href="/contributions/{{ contribution.id }}/proof">View proof</a>{% endif %}
           </td>

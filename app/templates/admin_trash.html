@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Trash · {{ app_name }}{% endblock %}
+{% block content %}
+<h1>Trash</h1>
+<p>Restoring an account does not reactivate it.</p>
+
+<section>
+  <h2>Accounts</h2>
+  {% if accounts %}
+  <div class="table-scroll" role="region" aria-label="Trashed accounts" tabindex="0">
+    <table>
+      <thead><tr><th>Account</th><th>Trashed</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for account in accounts %}
+        <tr>
+          <td>{{ account.full_name }}<br>{{ account.email }}<br><span class="muted">{{ account.role.value }} · {{ "Active" if account.is_active else "Inactive" }}</span></td>
+          <td>{{ account.trashed_at }}</td>
+          <td>
+            <form method="post" action="/admin/trash/accounts/{{ account.id }}/restore">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit">Restore account</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p>No accounts in trash.</p>{% endif %}
+</section>
+{% endblock %}

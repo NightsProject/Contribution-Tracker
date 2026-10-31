@@ -13,6 +13,17 @@ from app.auth import DbSession, admin_user, current_session, require_csrf, signe
 from app.config import get_settings
 from app.models import AuditLog, Contribution, ContributionStatus, User, UserRole, UserSession
 from app.services.file_storage import InvalidImageError, private_image_path, store_private_image
+from app.services.accounting import (
+    FinancialStateError,
+    InsufficientFundsError,
+    InvalidFinancialRecordError,
+    reverse_contribution,
+)
+from app.services.contribution_service import (
+    ContributionStateError,
+    review_contribution,
+    void_contribution,
+)
 from app.services.money import (
     MAX_AMOUNT_CENTAVOS,
     format_amount,
@@ -257,8 +268,6 @@ def approve_contribution(
     administrator: Annotated[User, Depends(admin_user)],
     _csrf: CsrfDependency,
 ) -> RedirectResponse:
-    from app.services.contribution_service import ContributionStateError, review_contribution
-
     try:
         review_contribution(
             db,
@@ -279,8 +288,6 @@ def reject_contribution(
     _csrf: CsrfDependency,
     reason: Annotated[str, Form(max_length=1000)],
 ) -> RedirectResponse:
-    from app.services.contribution_service import ContributionStateError, review_contribution
-
     normalized_reason = reason.strip()
     if not normalized_reason:
         raise HTTPException(status_code=400, detail="A rejection reason is required.")
@@ -295,3 +302,47 @@ def reject_contribution(
     except ContributionStateError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     return RedirectResponse("/admin/contributions/pending?reviewed=1", status_code=303)
+
+
+@router.post("/admin/contributions/{contribution_id}/void")
+def void_pending_contribution(
+    contribution_id: UUID,
+    db: DbSession,
+    administrator: Annotated[User, Depends(admin_user)],
+    _csrf: CsrfDependency,
+    reason: Annotated[str, Form(max_length=1000)],
+) -> RedirectResponse:
+    try:
+        void_contribution(
+            db,
+            contribution_id=contribution_id,
+            administrator_id=administrator.id,
+            reason=reason,
+        )
+    except InvalidFinancialRecordError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except ContributionStateError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return RedirectResponse("/dashboard?transaction_action=voided", status_code=303)
+
+
+@router.post("/admin/contributions/{contribution_id}/refund")
+def refund_approved_contribution(
+    contribution_id: UUID,
+    db: DbSession,
+    administrator: Annotated[User, Depends(admin_user)],
+    _csrf: CsrfDependency,
+    reason: Annotated[str, Form(max_length=1000)],
+) -> RedirectResponse:
+    try:
+        reverse_contribution(
+            db,
+            contribution_id=contribution_id,
+            actor_user_id=administrator.id,
+            reason=reason,
+        )
+    except InvalidFinancialRecordError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except (FinancialStateError, InsufficientFundsError) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return RedirectResponse("/dashboard?transaction_action=refunded", status_code=303)
