@@ -34,29 +34,41 @@
 
 <section>
   <h2>Transaction history</h2>
-  <form method="get" action="/dashboard">
-    <label for="search">Search account, reference, or description</label>
-    <input id="search" name="q" value="{{ filters.q }}">
-    <label for="account">Account name</label>
-    <input id="account" name="account" value="{{ filters.account }}">
-    <label for="type">Type</label>
-    <select id="type" name="type">
+  <form class="filter-form" method="get" action="/dashboard">
+    <div class="field">
+      <label for="search">Search account, reference, or description</label>
+      <input id="search" name="q" value="{{ filters.q }}">
+    </div>
+    <div class="field">
+      <label for="account">Account name</label>
+      <input id="account" name="account" value="{{ filters.account }}">
+    </div>
+    <div class="field">
+      <label for="type">Type</label>
+      <select id="type" name="type">
       <option value="">All</option>
       <option value="contribution" {% if filters.type == "contribution" %}selected{% endif %}>Contributions</option>
       <option value="expense" {% if filters.type == "expense" %}selected{% endif %}>Expenses</option>
-    </select>
-    <label for="status">Status</label>
-    <select id="status" name="status">
+      </select>
+    </div>
+    <div class="field">
+      <label for="status">Status</label>
+      <select id="status" name="status">
       <option value="">All</option>
       {% for status in ["PENDING", "APPROVED", "REJECTED", "REVERSED", "POSTED"] %}
       <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
       {% endfor %}
-    </select>
-    <label for="from-date">From</label>
-    <input id="from-date" name="from_date" type="date" value="{{ filters.from_date }}">
-    <label for="to-date">To</label>
-    <input id="to-date" name="to_date" type="date" value="{{ filters.to_date }}">
-    <button type="submit">Filter</button>
+      </select>
+    </div>
+    <div class="field">
+      <label for="from-date">From</label>
+      <input id="from-date" name="from_date" type="date" value="{{ filters.from_date }}">
+    </div>
+    <div class="field">
+      <label for="to-date">To</label>
+      <input id="to-date" name="to_date" type="date" value="{{ filters.to_date }}">
+    </div>
+    <button type="submit">Filter transactions</button>
   </form>
   {% if transactions %}
   <table>

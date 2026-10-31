@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.routes import (
@@ -26,7 +29,7 @@ async def add_security_headers(request: Request, call_next):
         "Content-Security-Policy",
         "default-src 'self'; base-uri 'self'; form-action 'self'; "
         "frame-ancestors 'none'; object-src 'none'; img-src 'self'; "
-        "style-src 'self' 'unsafe-inline'; script-src 'none'",
+        "style-src 'self'; script-src 'none'",
     )
     if get_settings().session_cookie_secure:
         response.headers.setdefault(
@@ -35,6 +38,12 @@ async def add_security_headers(request: Request, call_next):
         )
     return response
 
+
+app.mount(
+    "/static",
+    StaticFiles(directory=Path(__file__).resolve().parent / "static"),
+    name="static",
+)
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)

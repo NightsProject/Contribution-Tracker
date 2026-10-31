@@ -4,31 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
-  <style>
-    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172033; background: #f4f6fa; }
-    body { margin: 0; }
-    header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem max(1rem, calc((100% - 64rem) / 2)); background: #fff; border-bottom: 1px solid #dfe4ec; }
-    .header-navigation { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; flex-wrap: wrap; }
-    main { max-width: 64rem; margin: 2rem auto; padding: 0 1rem; }
-    h1 { font-size: 1.6rem; }
-    form, section, .card { background: white; border: 1px solid #dfe4ec; border-radius: .6rem; padding: 1rem; margin: 1rem 0; }
-    label { display: block; margin: .7rem 0 .25rem; font-weight: 600; }
-    input, select, button { box-sizing: border-box; padding: .6rem; max-width: 100%; }
-    input:not([type=checkbox]), select { width: 100%; }
-    button { cursor: pointer; margin-top: .8rem; }
-    table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
-    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid #e8ebf0; padding: .7rem; }
-    .error { color: #a32121; background: #fff2f0; padding: .7rem; border-radius: .3rem; }
-    .muted { color: #596579; }
-    .inline { display: inline; padding: 0; margin: 0; border: 0; }
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
-    .summary-grid .card { margin: 0; }
-    textarea { box-sizing: border-box; width: 100%; max-width: 100%; padding: .6rem; font: inherit; }
-    nav { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
-    .header-navigation nav { margin-top: 0; }
-    .instructions { white-space: pre-wrap; }
-    @media (max-width: 40rem) { header { align-items: flex-start; flex-direction: column; } .header-navigation { align-items: flex-start; justify-content: flex-start; flex-direction: column; } main { margin-top: 1rem; } }
-  </style>
+  <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
   {% include "partials/header.html" %}

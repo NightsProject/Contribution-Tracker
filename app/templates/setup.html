@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Create administrator · {{ app_name }}{% endblock %}
 {% block content %}
-<section>
+<section class="auth-card">
   <h1>Create the first administrator</h1>
   <p class="muted">Initial setup is available only until an administrator account exists.</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
