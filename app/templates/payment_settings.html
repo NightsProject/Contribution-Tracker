@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Payment settings · {{ app_name }}{% endblock %}
+{% block header %}
+  <span>{{ administrator.full_name }} · Administrator</span>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/admin/users">Manage accounts</a>
+  <form class="inline" method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<h1>Payment settings</h1>
+{% if saved %}<p role="status">Payment settings saved.</p>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<section>
+  <h2>Contribution payment instructions</h2>
+  <form method="post" action="/admin/payment-settings" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="payment-method">Payment method</label>
+    <input id="payment-method" name="payment_method" maxlength="100" value="{{ settings.payment_method or '' }}">
+    <label for="account-name">Account name</label>
+    <input id="account-name" name="account_name" maxlength="200" value="{{ settings.account_name or '' }}">
+    <label for="account-identifier">Account number or identifier</label>
+    <input id="account-identifier" name="account_identifier" maxlength="200" value="{{ settings.account_identifier or '' }}">
+    <label for="instructions">Instructions</label>
+    <textarea id="instructions" name="instructions" maxlength="10000" rows="5">{{ settings.instructions or '' }}</textarea>
+    <label for="qr-image">QR image (JPEG, PNG, or WebP; up to {{ max_upload_size }})</label>
+    <input id="qr-image" name="qr_image" type="file" accept="image/jpeg,image/png,image/webp">
+    {% if settings.qr_file_key %}
+      <p><a href="/admin/payment-settings/qr">View current payment QR</a></p>
+      <label><input name="remove_qr" type="checkbox"> Remove current QR image</label>
+    {% endif %}
+    <button type="submit">Save payment settings</button>
+  </form>
+</section>
+{% endblock %}

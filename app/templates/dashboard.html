@@ -7,6 +7,7 @@
   {% if user.role.value == "ADMIN" %}
     <a href="/admin/contributions/pending">Review contributions</a>
     <a href="/admin/recurring-expenses">Recurring expenses</a>
+    <a href="/admin/payment-settings">Payment settings</a>
     <a href="/admin/users">Manage accounts</a>
   {% endif %}
   <form class="inline" method="post" action="/logout">
@@ -17,8 +18,88 @@
 {% block content %}
 <section>
   <h1>Dashboard</h1>
-  <p>Signed in as <strong>{{ user.email }}</strong>.</p>
-  <p class="muted">Contribution submissions are reviewed by an administrator before being included in the pool balance.</p>
-  <p><a href="/contributions">Submit a contribution or review your submission history.</a></p>
+  <p>Welcome, <strong>{{ user.full_name }}</strong>.</p>
+</section>
+
+<section aria-label="Pool summary">
+  <h2>Pool summary</h2>
+  <div class="summary-grid">
+    <article class="card"><h3>Available balance</h3><p>₱{{ format_amount(balance.available_centavos) }}</p></article>
+    <article class="card"><h3>Approved contributions</h3><p>₱{{ format_amount(approved_total) }}</p></article>
+    <article class="card"><h3>Posted expenses</h3><p>₱{{ format_amount(posted_total) }}</p></article>
+    <article class="card"><h3>Contributors</h3><p>{{ contributor_count }}</p></article>
+  </div>
+</section>
+
+<section>
+  <h2>How to contribute</h2>
+  {% if payment_settings %}
+    {% if payment_settings.payment_method %}<p><strong>Method:</strong> {{ payment_settings.payment_method }}</p>{% endif %}
+    {% if payment_settings.account_name %}<p><strong>Account name:</strong> {{ payment_settings.account_name }}</p>{% endif %}
+    {% if payment_settings.account_identifier %}<p><strong>Account:</strong> {{ payment_settings.account_identifier }}</p>{% endif %}
+    {% if payment_settings.instructions %}<p class="instructions">{{ payment_settings.instructions }}</p>{% endif %}
+    {% if payment_settings.qr_file_key %}
+      <p><img src="/admin/payment-settings/qr" alt="Payment QR code" width="240" height="240"></p>
+    {% endif %}
+  {% else %}
+    <p class="muted">Payment instructions have not been configured yet.</p>
+  {% endif %}
+  <p><a href="/contributions">Submit a contribution or review your submissions.</a></p>
+</section>
+
+<section>
+  <h2>Transaction history</h2>
+  <form method="get" action="/dashboard">
+    <label for="search">Search account, reference, or description</label>
+    <input id="search" name="q" value="{{ filters.q }}">
+    <label for="account">Account name</label>
+    <input id="account" name="account" value="{{ filters.account }}">
+    <label for="type">Type</label>
+    <select id="type" name="type">
+      <option value="">All</option>
+      <option value="contribution" {% if filters.type == "contribution" %}selected{% endif %}>Contributions</option>
+      <option value="expense" {% if filters.type == "expense" %}selected{% endif %}>Expenses</option>
+    </select>
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      {% for status in ["PENDING", "APPROVED", "REJECTED", "REVERSED", "POSTED"] %}
+      <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+      {% endfor %}
+    </select>
+    <label for="from-date">From</label>
+    <input id="from-date" name="from_date" type="date" value="{{ filters.from_date }}">
+    <label for="to-date">To</label>
+    <input id="to-date" name="to_date" type="date" value="{{ filters.to_date }}">
+    <button type="submit">Filter</button>
+  </form>
+  {% if transactions %}
+  <table>
+    <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Description/reference</th><th>Amount</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for transaction in transactions %}
+      <tr>
+        <td>{{ format_timestamp(transaction.event_at) }}</td>
+        <td>{{ transaction.account }}</td>
+        <td>{{ transaction.type }}</td>
+        <td>{{ transaction.description }}</td>
+        <td>{% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}</td>
+        <td>{{ transaction.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No transactions match the selected filters.</p>
+  {% endif %}
+  <p>Page {{ page }} of {{ page_count }} · {{ total_transactions }} transactions</p>
+  <nav aria-label="Transaction pages">
+    {% if page > 1 %}
+    <a href="/dashboard?page={{ page - 1 }}&q={{ filters.q|urlencode }}&account={{ filters.account|urlencode }}&type={{ filters.type|urlencode }}&status={{ filters.status|urlencode }}&from_date={{ filters.from_date|urlencode }}&to_date={{ filters.to_date|urlencode }}">Previous</a>
+    {% endif %}
+    {% if page < page_count %}
+    <a href="/dashboard?page={{ page + 1 }}&q={{ filters.q|urlencode }}&account={{ filters.account|urlencode }}&type={{ filters.type|urlencode }}&status={{ filters.status|urlencode }}&from_date={{ filters.from_date|urlencode }}&to_date={{ filters.to_date|urlencode }}">Next</a>
+    {% endif %}
+  </nav>
 </section>
 {% endblock %}

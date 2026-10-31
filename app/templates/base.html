@@ -20,6 +20,11 @@
     .error { color: #a32121; background: #fff2f0; padding: .7rem; border-radius: .3rem; }
     .muted { color: #596579; }
     .inline { display: inline; padding: 0; margin: 0; border: 0; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
+    .summary-grid .card { margin: 0; }
+    textarea { box-sizing: border-box; width: 100%; max-width: 100%; padding: .6rem; font: inherit; }
+    nav { display: flex; gap: 1rem; margin-top: 1rem; }
+    .instructions { white-space: pre-wrap; }
     @media (max-width: 40rem) { header { align-items: flex-start; flex-direction: column; } main { margin-top: 1rem; } }
   </style>
 </head>

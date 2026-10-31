@@ -55,6 +55,12 @@ in chronological order, posts them only when funds are available, and exposes
 blocked occurrences for manual retry. Compose starts the worker only after the
 web service has applied database migrations.
 
+The dashboard summarizes the shared pool, displays contribution payment
+instructions and QR details, and provides a paginated transaction history with
+account, type, status, text, and date filters. Administrators manage payment
+details and QR uploads from **Payment settings**; QR files are private and
+visible only to signed-in users.
+
 ## Run tests
 
 ```sh
