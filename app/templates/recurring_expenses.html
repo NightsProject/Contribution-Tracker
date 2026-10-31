@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Recurring expenses · {{ app_name }}{% endblock %}
+{% block header %}
+  <span>{{ administrator.full_name }} · Administrator</span>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/expenses">Expense history</a>
+  <a href="/admin/contributions/pending">Review contributions</a>
+  <form class="inline" method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<h1>Recurring expenses</h1>
+{% if saved %}<p role="status">Recurring expense changes saved.</p>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<section>
+  <h2>Create a schedule</h2>
+  <form method="post" action="/admin/recurring-expenses">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="new-name">Name</label>
+    <input id="new-name" name="name" maxlength="200" required>
+    <label for="new-description">Description (optional)</label>
+    <input id="new-description" name="description" maxlength="1000">
+    <label for="new-category">Category</label>
+    <input id="new-category" name="category" maxlength="100" required>
+    <label for="new-amount">Amount per occurrence (PHP)</label>
+    <input id="new-amount" name="amount" type="number" min="0.01" max="{{ max_amount_php }}" step="0.01" required>
+    <label for="new-interval">Repeat every (days)</label>
+    <input id="new-interval" name="interval_days" type="number" min="1" step="1" value="30" required>
+    <label for="new-start">First due date and time ({{ settings_timezone }})</label>
+    <input id="new-start" name="start_date" type="datetime-local" required>
+    <label for="new-end">Last due date and time (optional)</label>
+    <input id="new-end" name="end_date" type="datetime-local">
+    <button type="submit">Create schedule</button>
+  </form>
+</section>
+
+<section>
+  <h2>Schedules</h2>
+  {% if schedules %}
+    {% for schedule in schedules %}
+    <article>
+      <h3>{{ schedule.name }} · {{ schedule.status.value }}</h3>
+      <p>{{ schedule.description or "" }}{% if schedule.description %} · {% endif %}₱{{ format_amount(schedule.amount_centavos) }} every {{ schedule.interval_days }} day(s), {{ schedule.category }}.</p>
+      <p>Next due: {{ local_datetime_input(schedule.next_due_at) }} · Last generated: {{ local_datetime_input(schedule.last_generated_at) if schedule.last_generated_at else "Never" }}</p>
+      {% if schedule.end_date %}<p>Ends: {{ local_datetime_input(schedule.end_date) }}</p>{% endif %}
+      <form method="post" action="/admin/recurring-expenses/{{ schedule.id }}/edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label for="name-{{ schedule.id }}">Name</label>
+        <input id="name-{{ schedule.id }}" name="name" maxlength="200" value="{{ schedule.name }}" required>
+        <label for="description-{{ schedule.id }}">Description</label>
+        <input id="description-{{ schedule.id }}" name="description" maxlength="1000" value="{{ schedule.description or '' }}">
+        <label for="category-{{ schedule.id }}">Category</label>
+        <input id="category-{{ schedule.id }}" name="category" maxlength="100" value="{{ schedule.category }}" required>
+        <label for="amount-{{ schedule.id }}">Amount (PHP)</label>
+        <input id="amount-{{ schedule.id }}" name="amount" type="number" min="0.01" max="{{ max_amount_php }}" step="0.01" value="{{ format_amount_input(schedule.amount_centavos) }}" required>
+        <label for="interval-{{ schedule.id }}">Interval in days</label>
+        <input id="interval-{{ schedule.id }}" name="interval_days" type="number" min="1" step="1" value="{{ schedule.interval_days }}" required>
+        <p class="muted">An interval change takes effect after the next currently scheduled occurrence.</p>
+        <label for="end-{{ schedule.id }}">Last due date and time (optional)</label>
+        <input id="end-{{ schedule.id }}" name="end_date" type="datetime-local" value="{{ local_datetime_input(schedule.end_date) if schedule.end_date else '' }}">
+        <button type="submit">Save schedule</button>
+      </form>
+      {% if schedule.status.value == "ACTIVE" %}
+      <form method="post" action="/admin/recurring-expenses/{{ schedule.id }}/pause">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Pause</button>
+      </form>
+      {% elif schedule.status.value == "PAUSED" %}
+      <form method="post" action="/admin/recurring-expenses/{{ schedule.id }}/resume">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Resume</button>
+      </form>
+      {% endif %}
+      {% if schedule.status.value != "ENDED" %}
+      <form method="post" action="/admin/recurring-expenses/{{ schedule.id }}/end">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">End schedule</button>
+      </form>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+  <p>No recurring expense schedules.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Blocked occurrences</h2>
+  {% if blocked %}
+    {% for occurrence, schedule in blocked %}
+    <article>
+      <h3>{{ schedule.name }} · ₱{{ format_amount(schedule.amount_centavos) }}</h3>
+      <p>Scheduled for {{ local_datetime_input(occurrence.scheduled_for) }}. {{ occurrence.blocked_reason }}</p>
+      <form method="post" action="/admin/recurring-expenses/occurrences/{{ occurrence.id }}/retry">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Retry occurrence</button>
+      </form>
+    </article>
+    {% endfor %}
+  {% else %}
+  <p>No blocked occurrences.</p>
+  {% endif %}
+</section>
+{% endblock %}

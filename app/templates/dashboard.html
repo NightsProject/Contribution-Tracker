@@ -6,6 +6,7 @@
   <a href="/expenses">Expense history</a>
   {% if user.role.value == "ADMIN" %}
     <a href="/admin/contributions/pending">Review contributions</a>
+    <a href="/admin/recurring-expenses">Recurring expenses</a>
     <a href="/admin/users">Manage accounts</a>
   {% endif %}
   <form class="inline" method="post" action="/logout">

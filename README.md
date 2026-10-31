@@ -7,8 +7,8 @@ persistence, database-backed sessions, Argon2id authentication, role-protected
 account management, contribution submissions and review, private proof-image
 storage, a centralized accounting service with serialized pool updates,
 balance queries, audited posting/reversal operations, admin expense entry with
-private receipt storage, and versioned Alembic migrations. Recurring expense
-workflows are not implemented yet.
+private receipt storage, recurring expense schedule management and worker
+processing, and versioned Alembic migrations.
 
 ## Run locally with Docker Compose
 
@@ -48,6 +48,12 @@ Administrators can record expenses from **Expense history**. The server checks
 the current pool balance under the accounting lock before posting, records an
 audit entry, and optionally stores a validated private receipt image. Signed-in
 users can review the posted expense history.
+
+Administrators can create and manage recurring expense schedules from
+**Recurring expenses**. A dedicated APScheduler worker processes occurrences
+in chronological order, posts them only when funds are available, and exposes
+blocked occurrences for manual retry. Compose starts the worker only after the
+web service has applied database migrations.
 
 ## Run tests
 

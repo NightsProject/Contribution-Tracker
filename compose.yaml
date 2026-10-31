@@ -34,6 +34,21 @@ services:
     volumes:
       - uploads:/app/uploads
 
+  scheduler:
+    build: .
+    command: ["python", "-m", "app.scheduler.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-contribution}:${POSTGRES_PASSWORD:-change-me-for-local-development}@db:5432/${POSTGRES_DB:-contribution_tracker}
+      UPLOADS_DIR: /app/uploads
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_MAX_AGE_SECONDS: ${SESSION_MAX_AGE_SECONDS:-28800}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-5242880}
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+
 volumes:
   postgres_data:
   uploads:
