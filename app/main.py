@@ -2,12 +2,13 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 from app.config import get_settings
-from app.routes import admin, auth, contributions, dashboard
+from app.routes import admin, auth, contributions, dashboard, expenses
 
 app = FastAPI(title=get_settings().app_name)
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(contributions.router)
+app.include_router(expenses.router)
 app.include_router(admin.router)
 
 

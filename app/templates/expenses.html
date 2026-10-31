@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Expenses · {{ app_name }}{% endblock %}
+{% block header %}
+  <span>{{ user.full_name }} · {{ user.role.value }}</span>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/contributions">My contributions</a>
+  {% if user.role.value == "ADMIN" %}<a href="/admin/contributions/pending">Review contributions</a>{% endif %}
+  <form class="inline" method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<h1>Expenses</h1>
+<p>Available pool balance: <strong>₱{{ available_balance }}</strong></p>
+{% if created %}<p role="status">Expense posted.</p>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+{% if user.role.value == "ADMIN" %}
+<section>
+  <h2>Record an expense</h2>
+  <form method="post" action="/admin/expenses" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="description">Description</label>
+    <input id="description" name="description" maxlength="500" required>
+    <label for="category">Category</label>
+    <input id="category" name="category" maxlength="100" required>
+    <label for="amount">Amount (PHP)</label>
+    <input id="amount" name="amount" type="number" min="0.01" max="{{ max_amount_php }}" step="0.01" inputmode="decimal" required>
+    <label for="expense-date">Expense date</label>
+    <input id="expense-date" name="expense_date" type="date" required>
+    <label for="receipt">Receipt image (optional; JPEG, PNG, or WebP, up to {{ max_upload_size }})</label>
+    <input id="receipt" name="receipt" type="file" accept="image/jpeg,image/png,image/webp">
+    <button type="submit">Post expense</button>
+  </form>
+</section>
+{% endif %}
+
+<section>
+  <h2>Expense history</h2>
+  {% if expenses %}
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Recorded by</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead>
+    <tbody>
+      {% for expense, creator_name in expenses %}
+      <tr>
+        <td>{{ expense.expense_date }}</td>
+        <td>{{ expense.description }}</td>
+        <td>{{ expense.category }}</td>
+        <td>{{ creator_name or "Scheduled expense" }}</td>
+        <td>−₱{{ format_amount(expense.amount_centavos) }}</td>
+        <td>{{ expense.status.value }}</td>
+        <td>{% if expense.receipt_file_key %}<a href="/expenses/{{ expense.id }}/receipt">View receipt</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No expenses recorded.</p>
+  {% endif %}
+</section>
+{% endblock %}

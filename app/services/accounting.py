@@ -17,8 +17,8 @@ from app.models import (
     ExpenseStatus,
 )
 from app.models.common import utc_now
+from app.services.money import MAX_AMOUNT_CENTAVOS
 
-MAX_AMOUNT_CENTAVOS = 2_147_483_647
 ACCOUNTING_LOCK_ID = 1
 
 
@@ -99,6 +99,7 @@ def post_expense(
     category: str,
     amount_centavos: int,
     expense_date: date,
+    receipt_file_key: str | None = None,
 ) -> Expense:
     normalized_description = description.strip()
     normalized_category = category.strip()
@@ -123,6 +124,7 @@ def post_expense(
         amount_centavos=amount_centavos,
         expense_date=expense_date,
         created_by=actor_user_id,
+        receipt_file_key=receipt_file_key,
         status=ExpenseStatus.POSTED,
     )
     db.add(expense)
@@ -137,6 +139,7 @@ def post_expense(
                 "amount_centavos": amount_centavos,
                 "category": normalized_category,
                 "description": normalized_description,
+                "receipt_attached": receipt_file_key is not None,
             },
         )
     )

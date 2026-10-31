@@ -31,7 +31,7 @@ from app.services.accounting import (
 PASSWORD = "correct horse battery staple"
 
 
-def create_user(test_db) -> uuid.UUID:
+def create_user(test_db) -> UUID:
     with test_db() as db:
         user = User(
             full_name="Accounting Admin",

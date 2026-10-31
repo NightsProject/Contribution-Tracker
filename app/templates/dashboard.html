@@ -3,6 +3,7 @@
 {% block header %}
   <span>{{ user.full_name }} · {{ user.role.value }}</span>
   <a href="/contributions">My contributions</a>
+  <a href="/expenses">Expense history</a>
   {% if user.role.value == "ADMIN" %}
     <a href="/admin/contributions/pending">Review contributions</a>
     <a href="/admin/users">Manage accounts</a>

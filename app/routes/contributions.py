@@ -1,4 +1,3 @@
-import re
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Annotated
@@ -14,27 +13,16 @@ from app.auth import DbSession, admin_user, current_session, require_csrf, signe
 from app.config import get_settings
 from app.models import AuditLog, Contribution, ContributionStatus, User, UserRole, UserSession
 from app.services.file_storage import InvalidImageError, private_image_path, store_private_image
+from app.services.money import (
+    MAX_AMOUNT_CENTAVOS,
+    format_amount,
+    format_amount_input,
+    parse_amount_centavos,
+)
 from app.web import templates
 
 router = APIRouter()
 CsrfDependency = Annotated[None, Depends(require_csrf)]
-MAX_AMOUNT_CENTAVOS = 2_147_483_647
-AMOUNT_PATTERN = re.compile(r"^[0-9]{1,9}(?:\.[0-9]{1,2})?$")
-
-
-def parse_amount_centavos(value: str) -> int | None:
-    amount = value.strip()
-    if not AMOUNT_PATTERN.fullmatch(amount):
-        return None
-    whole, _, fractional = amount.partition(".")
-    centavos = int(whole) * 100 + int(fractional.ljust(2, "0") or "0")
-    if centavos <= 0 or centavos > MAX_AMOUNT_CENTAVOS:
-        return None
-    return centavos
-
-
-def format_amount(amount_centavos: int) -> str:
-    return f"{amount_centavos // 100:,}.{amount_centavos % 100:02d}"
 
 
 def format_timestamp(value: datetime) -> str:
@@ -80,7 +68,7 @@ def history_page(
             "format_amount": format_amount,
             "format_timestamp": format_timestamp,
             "max_upload_size": format_upload_size(get_settings().max_upload_size_bytes),
-            "max_amount_php": format_amount(MAX_AMOUNT_CENTAVOS),
+            "max_amount_php": format_amount_input(MAX_AMOUNT_CENTAVOS),
             "submitted": request.query_params.get("submitted") == "1",
         },
         status_code=status_code,
