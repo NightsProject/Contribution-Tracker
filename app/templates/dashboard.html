@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · {{ app_name }}{% endblock %}
+{% block header %}
+  <span>{{ user.full_name }} · {{ user.role.value }}</span>
+  {% if user.role.value == "ADMIN" %}<a href="/admin/users">Manage accounts</a>{% endif %}
+  <form class="inline" method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<section>
+  <h1>Dashboard</h1>
+  <p>Signed in as <strong>{{ user.email }}</strong>.</p>
+  <p class="muted">Contribution and expense tracking will be available in the next implementation phases.</p>
+</section>
+{% endblock %}

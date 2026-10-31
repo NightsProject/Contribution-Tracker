@@ -1,13 +1,18 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
 from app.config import get_settings
+from app.routes import admin, auth, dashboard
 
 app = FastAPI(title=get_settings().app_name)
+app.include_router(auth.router)
+app.include_router(dashboard.router)
+app.include_router(admin.router)
 
 
 @app.get("/", tags=["status"])
-def root() -> dict[str, str]:
-    return {"name": get_settings().app_name, "status": "foundation"}
+def root() -> RedirectResponse:
+    return RedirectResponse("/dashboard", status_code=303)
 
 
 @app.get("/healthz", tags=["status"])

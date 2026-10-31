@@ -2,9 +2,10 @@
 
 Foundation for the role-based shared-pool tracker described in
 [`docs/design/contribution_expense_tracker_design_document.docx`](docs/design/contribution_expense_tracker_design_document.docx).
-The initial scaffold includes the FastAPI application, PostgreSQL persistence,
-SQLAlchemy models, and versioned Alembic migrations. Authentication and the
-financial workflows are not implemented yet.
+The application currently includes the FastAPI foundation, PostgreSQL
+persistence, database-backed sessions, Argon2id authentication, role-protected
+account management, and versioned Alembic migrations. Contribution and expense
+workflows are not implemented yet.
 
 ## Run locally with Docker Compose
 
@@ -18,7 +19,19 @@ liveness check. Compose runs database migrations before starting the web
 service and persists PostgreSQL data and uploads in named volumes.
 
 The credentials in `.env.example` are for local development only. Replace them
-with strong, unique values before using any non-local deployment.
+with strong, unique values before using any non-local deployment. For an
+HTTPS-terminated deployment, set `SESSION_COOKIE_SECURE=true`.
+
+Create the first administrator after the database is running:
+
+```sh
+docker compose exec web python -m app.cli create-admin
+```
+
+The command prompts for the administrator details and password, and refuses to
+create a second active bootstrap administrator. Administrators can create,
+update, deactivate, or change the roles/passwords of accounts from
+**Manage accounts** in the dashboard. Passwords must be at least 12 characters.
 
 ## Run tests
 

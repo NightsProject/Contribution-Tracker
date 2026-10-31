@@ -8,7 +8,7 @@ from app.models.recurring_expense import (
     RecurringExpenseStatus,
     RecurringOccurrence,
 )
-from app.models.session import UserSession
+from app.models.session import LoginAttempt, UserSession
 from app.models.user import User, UserRole
 
 __all__ = [
@@ -17,6 +17,7 @@ __all__ = [
     "ContributionStatus",
     "Expense",
     "ExpenseStatus",
+    "LoginAttempt",
     "OccurrenceStatus",
     "PaymentSettings",
     "RecurringExpense",
