@@ -4,8 +4,9 @@ Foundation for the role-based shared-pool tracker described in
 [`docs/design/contribution_expense_tracker_design_document.docx`](docs/design/contribution_expense_tracker_design_document.docx).
 The application currently includes the FastAPI foundation, PostgreSQL
 persistence, database-backed sessions, Argon2id authentication, role-protected
-account management, and versioned Alembic migrations. Contribution and expense
-workflows are not implemented yet.
+account management, contribution submissions and review, private proof-image
+storage, and versioned Alembic migrations. Expense workflows are not
+implemented yet.
 
 ## Run locally with Docker Compose
 
@@ -32,6 +33,14 @@ The command prompts for the administrator details and password, and refuses to
 create a second active bootstrap administrator. Administrators can create,
 update, deactivate, or change the roles/passwords of accounts from
 **Manage accounts** in the dashboard. Passwords must be at least 12 characters.
+
+Signed-in users can submit contributions with a PHP amount, payment reference,
+payment date, and optional JPEG/PNG/WebP proof image. Proof files are size- and
+content-validated, normalized, stored outside the public static directory, and
+served only to the submitting user or an administrator. Administrators review
+pending submissions from **Review contributions**; approval or rejection and
+its audit entry are committed atomically. Only approved submissions count as
+posted contributions.
 
 ## Run tests
 

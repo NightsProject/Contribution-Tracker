@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Manila"
     session_cookie_secure: bool = False
     session_max_age_seconds: int = Field(default=28800, gt=0, le=2592000)
+    max_upload_size_bytes: int = Field(default=5 * 1024 * 1024, gt=0, le=25 * 1024 * 1024)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

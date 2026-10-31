@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Pending contributions · {{ app_name }}{% endblock %}
+{% block header %}
+  <span>{{ administrator.full_name }} · Administrator</span>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/admin/users">Manage accounts</a>
+  <form class="inline" method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<h1>Pending contributions</h1>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% if request.query_params.get("reviewed") == "1" %}<p role="status">Contribution review saved.</p>{% endif %}
+
+{% if pending %}
+  {% for contribution, contributor in pending %}
+  <section>
+    <h2>{{ contributor.full_name }} · ₱{{ format_amount(contribution.amount_centavos) }}</h2>
+    <p>{{ contributor.email }}</p>
+    <p>Payment date: {{ contribution.payment_date }}</p>
+    <p>Reference: {{ contribution.payment_reference }}</p>
+    <p>Submitted: {{ format_timestamp(contribution.created_at) }}</p>
+    {% if contribution.proof_file_key %}
+      <p><a href="/contributions/{{ contribution.id }}/proof">View proof image</a></p>
+    {% endif %}
+    <form method="post" action="/admin/contributions/{{ contribution.id }}/approve">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit">Approve contribution</button>
+    </form>
+    <form method="post" action="/admin/contributions/{{ contribution.id }}/reject">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label for="reason-{{ contribution.id }}">Rejection reason</label>
+      <input id="reason-{{ contribution.id }}" name="reason" maxlength="1000" required>
+      <button type="submit">Reject contribution</button>
+    </form>
+  </section>
+  {% endfor %}
+{% else %}
+  <section><p>No pending contributions.</p></section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}My contributions · {{ app_name }}{% endblock %}
+{% block header %}
+  <span>{{ user.full_name }} · {{ user.role.value }}</span>
+  <a href="/dashboard">Dashboard</a>
+  <form class="inline" method="post" action="/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}
+{% block content %}
+<h1>My contributions</h1>
+{% if submitted %}<p role="status">Contribution submitted for administrator review.</p>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+<section>
+  <h2>Submit a contribution</h2>
+  <form method="post" action="/contributions" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="amount">Amount (PHP)</label>
+    <input id="amount" name="amount" type="number" min="0.01" max="{{ max_amount_php }}" step="0.01" inputmode="decimal" required>
+    <label for="reference">Payment reference</label>
+    <input id="reference" name="payment_reference" maxlength="200" required>
+    <label for="payment-date">Payment date</label>
+    <input id="payment-date" name="payment_date" type="date" required>
+    <label for="proof">Proof image (optional; JPEG, PNG, or WebP, up to {{ max_upload_size }})</label>
+    <input id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp">
+    <button type="submit">Submit for review</button>
+  </form>
+</section>
+
+<section>
+  <h2>Submission history</h2>
+  {% if contributions %}
+  <table>
+    <thead><tr><th>Submitted</th><th>Payment date</th><th>Reference</th><th>Amount</th><th>Status</th><th>Details</th></tr></thead>
+    <tbody>
+      {% for contribution in contributions %}
+      <tr>
+        <td>{{ format_timestamp(contribution.created_at) }}</td>
+        <td>{{ contribution.payment_date }}</td>
+        <td>{{ contribution.payment_reference }}</td>
+        <td>₱{{ format_amount(contribution.amount_centavos) }}</td>
+        <td>{{ contribution.status.value }}</td>
+        <td>
+          {% if contribution.proof_file_key %}<a href="/contributions/{{ contribution.id }}/proof">View proof</a>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No contribution submissions yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

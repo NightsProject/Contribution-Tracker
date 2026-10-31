@@ -2,7 +2,11 @@
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
 {% block header %}
   <span>{{ user.full_name }} · {{ user.role.value }}</span>
-  {% if user.role.value == "ADMIN" %}<a href="/admin/users">Manage accounts</a>{% endif %}
+  <a href="/contributions">My contributions</a>
+  {% if user.role.value == "ADMIN" %}
+    <a href="/admin/contributions/pending">Review contributions</a>
+    <a href="/admin/users">Manage accounts</a>
+  {% endif %}
   <form class="inline" method="post" action="/logout">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <button type="submit">Sign out</button>
@@ -12,6 +16,7 @@
 <section>
   <h1>Dashboard</h1>
   <p>Signed in as <strong>{{ user.email }}</strong>.</p>
-  <p class="muted">Contribution and expense tracking will be available in the next implementation phases.</p>
+  <p class="muted">Contribution submissions are reviewed by an administrator before being included in the pool balance.</p>
+  <p><a href="/contributions">Submit a contribution or review your submission history.</a></p>
 </section>
 {% endblock %}
