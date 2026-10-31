@@ -13,5 +13,8 @@
     <input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
     <button type="submit">Sign in</button>
   </form>
+  {% if setup_available %}
+    <p><a href="/setup">Create the first administrator</a></p>
+  {% endif %}
 </section>
 {% endblock %}

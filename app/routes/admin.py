@@ -9,19 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.auth import DbSession, admin_user, current_session, require_csrf
 from app.models import AuditLog, User, UserRole, UserSession
-from app.security import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, hash_password
+from app.security import MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, hash_password, valid_email
 from app.web import templates
 
 router = APIRouter(prefix="/admin")
 AdminDependency = Annotated[User, Depends(admin_user)]
 CsrfDependency = Annotated[None, Depends(require_csrf)]
-
-
-def valid_email(email: str) -> bool:
-    if len(email) > 320 or email.count("@") != 1 or any(char.isspace() for char in email):
-        return False
-    local, domain = email.split("@")
-    return bool(local and "." in domain and not domain.startswith(".") and not domain.endswith("."))
 
 
 def parse_role(role: str) -> UserRole | None:

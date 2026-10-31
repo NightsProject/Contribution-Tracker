@@ -37,14 +37,19 @@ Caddy obtains and renews TLS certificates automatically. Expose only ports 80
 and 443 publicly; keep port 8000 bound to localhost. Do not use the example
 password in a deployed environment.
 
-Create the first administrator after the database is running:
+When the database is initialized and has no administrator account, open the
+application and choose **Create the first administrator** on the sign-in page.
+The one-time setup form creates the account and signs it in. The setup link is
+disabled as soon as an administrator account exists.
+
+Alternatively, create the first administrator from the command line:
 
 ```sh
 docker compose exec web python -m app.cli create-admin
 ```
 
-The command prompts for the administrator details and password, and refuses to
-create a second active bootstrap administrator. Administrators can create,
+The command prompts for the administrator details and password and refuses to
+create an administrator if one already exists. Administrators can create,
 update, deactivate, or change the roles/passwords of accounts from
 **Manage accounts** in the dashboard. Passwords must be at least 12 characters.
 

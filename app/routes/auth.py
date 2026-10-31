@@ -20,7 +20,14 @@ from app.security import (
     hash_session_id,
     login_attempt_key,
     needs_rehash,
+    valid_email,
     verify_password,
+)
+from app.services.bootstrap import (
+    AdminAlreadyExistsError,
+    EmailAlreadyInUseError,
+    create_initial_admin,
+    has_admin_account,
 )
 from app.web import templates
 
@@ -30,6 +37,7 @@ LOGIN_WINDOW = timedelta(minutes=15)
 LOCKOUT_DURATION = timedelta(minutes=15)
 EmailForm = Annotated[str, Form(max_length=320)]
 PasswordForm = Annotated[str, Form(max_length=1024)]
+PasswordConfirmationForm = Annotated[str, Form(max_length=1024)]
 
 
 def set_session_cookie(response: RedirectResponse, session_id: str) -> None:
@@ -95,7 +103,11 @@ def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
     response = templates.TemplateResponse(
         request=request,
         name="login.html",
-        context={"csrf_token": user_session.data["csrf_token"], "error": None},
+        context={
+            "csrf_token": user_session.data["csrf_token"],
+            "error": None,
+            "setup_available": not has_admin_account(db),
+        },
     )
     response.set_cookie(
         "session_id",
@@ -106,6 +118,127 @@ def login_page(request: Request, db: DbSession) -> HTMLResponse | RedirectRespon
         samesite="lax",
         path="/",
     )
+    return response
+
+
+@router.get("/setup", response_class=HTMLResponse, name="setup", response_model=None)
+def setup_page(request: Request, db: DbSession) -> HTMLResponse | RedirectResponse:
+    if has_admin_account(db):
+        return RedirectResponse("/login", status_code=303)
+
+    session_id = request.cookies.get("session_id")
+    user_session = None
+    if (
+        session_id is not None
+        and len(session_id) == 64
+        and all(character in "0123456789abcdef" for character in session_id)
+    ):
+        user_session = db.get(UserSession, hash_session_id(session_id))
+    if user_session is not None and not active_session(user_session):
+        db.delete(user_session)
+        db.commit()
+        user_session = None
+    if user_session is not None and user_session.user_id is not None:
+        user = db.get(User, user_session.user_id)
+        if user is not None and user.is_active:
+            return RedirectResponse("/dashboard", status_code=303)
+        db.delete(user_session)
+        db.commit()
+        user_session = None
+
+    if user_session is None:
+        user_session, session_id = new_user_session()
+        db.add(user_session)
+        db.commit()
+    else:
+        session_id = request.cookies.get("session_id", "")
+
+    response = templates.TemplateResponse(
+        request=request,
+        name="setup.html",
+        context={
+            "csrf_token": user_session.data["csrf_token"],
+            "error": None,
+            "full_name": "",
+            "email": "",
+        },
+    )
+    response.set_cookie(
+        "session_id",
+        session_id,
+        max_age=get_settings().session_max_age_seconds,
+        httponly=True,
+        secure=get_settings().session_cookie_secure,
+        samesite="lax",
+        path="/",
+    )
+    return response
+
+
+@router.post("/setup", response_class=HTMLResponse, response_model=None)
+def create_first_admin(
+    request: Request,
+    db: DbSession,
+    user_session: Annotated[UserSession, Depends(current_session)],
+    _csrf: Annotated[None, Depends(require_csrf)],
+    full_name: Annotated[str, Form(max_length=200)],
+    email: EmailForm,
+    password: PasswordForm,
+    password_confirmation: PasswordConfirmationForm,
+) -> HTMLResponse | RedirectResponse:
+    name = full_name.strip()
+    normalized_email = email.strip().lower()
+    if (
+        not name
+        or not valid_email(normalized_email)
+        or not MIN_PASSWORD_LENGTH <= len(password) <= MAX_PASSWORD_LENGTH
+        or password != password_confirmation
+    ):
+        return templates.TemplateResponse(
+            request=request,
+            name="setup.html",
+            context={
+                "csrf_token": user_session.data["csrf_token"],
+                "error": (
+                    "Enter a name, valid email, matching passwords, and a password "
+                    f"between {MIN_PASSWORD_LENGTH} and {MAX_PASSWORD_LENGTH} characters."
+                ),
+                "full_name": name,
+                "email": normalized_email,
+            },
+            status_code=400,
+        )
+
+    try:
+        administrator = create_initial_admin(
+            db,
+            full_name=name,
+            email=normalized_email,
+            password=password,
+        )
+    except AdminAlreadyExistsError:
+        db.rollback()
+        return RedirectResponse("/login", status_code=303)
+    except EmailAlreadyInUseError:
+        db.rollback()
+        return templates.TemplateResponse(
+            request=request,
+            name="setup.html",
+            context={
+                "csrf_token": user_session.data["csrf_token"],
+                "error": "That email address is already in use.",
+                "full_name": name,
+                "email": normalized_email,
+            },
+            status_code=409,
+        )
+
+    db.delete(user_session)
+    authenticated_session, session_id = new_user_session(administrator.id)
+    db.add(authenticated_session)
+    db.commit()
+    response = RedirectResponse("/dashboard", status_code=303)
+    set_session_cookie(response, session_id)
     return response
 
 
@@ -207,7 +340,11 @@ def login(
     response = templates.TemplateResponse(
         request=request,
         name="login.html",
-        context={"csrf_token": user_session.data["csrf_token"], "error": error},
+        context={
+            "csrf_token": user_session.data["csrf_token"],
+            "error": error,
+            "setup_available": not has_admin_account(db),
+        },
         status_code=400,
     )
     return response

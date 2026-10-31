@@ -84,6 +84,117 @@ def test_database_backed_login_and_csrf_protected_logout(client, test_db) -> Non
         assert db.get(UserSession, hash_session_id(session_id)) is None
 
 
+def test_first_admin_can_be_created_through_one_time_setup(client, test_db) -> None:
+    login_page = client.get("/login")
+    assert 'href="/setup"' in login_page.text
+
+    setup_page = client.get("/setup")
+    response = client.post(
+        "/setup",
+        data={
+            "csrf_token": get_csrf(setup_page),
+            "full_name": "Initial Administrator",
+            "email": "ADMIN@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/dashboard"
+    dashboard = client.get("/dashboard")
+    assert dashboard.status_code == 200
+    assert 'href="/admin/users"' in dashboard.text
+    with test_db() as db:
+        administrator = db.scalar(select(User).where(User.email == "admin@example.com"))
+        assert administrator is not None
+        assert administrator.role == UserRole.ADMIN
+        assert administrator.is_active
+        session_id = client.cookies.get("session_id")
+        assert session_id is not None
+        stored_session = db.get(UserSession, hash_session_id(session_id))
+        assert stored_session is not None
+        assert stored_session.user_id == administrator.id
+        event = db.scalar(
+            select(AuditLog).where(AuditLog.action == "user.bootstrap_admin_created")
+        )
+        assert event is not None
+        assert event.entity_id == str(administrator.id)
+
+    assert 'href="/setup"' not in client.get("/login").text
+    assert client.get("/setup").headers["location"] == "/login"
+
+
+def test_first_admin_setup_validates_input_and_csrf(client, test_db) -> None:
+    setup_page = client.get("/setup")
+    csrf_token = get_csrf(setup_page)
+
+    csrf_rejected = client.post(
+        "/setup",
+        data={
+            "csrf_token": "invalid",
+            "full_name": "Initial Administrator",
+            "email": "admin@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+    assert csrf_rejected.status_code == 403
+
+    invalid_password = client.post(
+        "/setup",
+        data={
+            "csrf_token": csrf_token,
+            "full_name": "Initial Administrator",
+            "email": "admin@example.com",
+            "password": "short",
+            "password_confirmation": "different",
+        },
+    )
+    assert invalid_password.status_code == 400
+    assert "matching passwords" in invalid_password.text
+    with test_db() as db:
+        assert db.scalar(select(User.id).where(User.role == UserRole.ADMIN)) is None
+
+
+def test_first_admin_setup_rejects_existing_email_and_stale_setup(client, test_db) -> None:
+    create_user(test_db, email="existing@example.com")
+    setup_page = client.get("/setup")
+    csrf_token = get_csrf(setup_page)
+
+    duplicate_email = client.post(
+        "/setup",
+        data={
+            "csrf_token": csrf_token,
+            "full_name": "Initial Administrator",
+            "email": "existing@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+    assert duplicate_email.status_code == 409
+    assert "already in use" in duplicate_email.text
+
+    create_user(test_db, role=UserRole.ADMIN, email="admin@example.com")
+    stale_setup = client.post(
+        "/setup",
+        data={
+            "csrf_token": csrf_token,
+            "full_name": "Second Administrator",
+            "email": "second-admin@example.com",
+            "password": PASSWORD,
+            "password_confirmation": PASSWORD,
+        },
+    )
+    assert stale_setup.status_code == 303
+    assert stale_setup.headers["location"] == "/login"
+    with test_db() as db:
+        administrators = db.scalars(
+            select(User).where(User.role == UserRole.ADMIN)
+        ).all()
+        assert len(administrators) == 1
+
+
 def test_expired_session_is_rejected_and_removed(client, test_db) -> None:
     user_id = create_user(test_db)
     user_session, raw_session_id = new_user_session(user_id)

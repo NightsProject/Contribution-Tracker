@@ -10,6 +10,13 @@ MIN_PASSWORD_LENGTH = 12
 MAX_PASSWORD_LENGTH = 1024
 
 
+def valid_email(email: str) -> bool:
+    if len(email) > 320 or email.count("@") != 1 or any(char.isspace() for char in email):
+        return False
+    local, domain = email.split("@")
+    return bool(local and "." in domain and not domain.startswith(".") and not domain.endswith("."))
+
+
 def hash_password(password: str) -> str:
     return PASSWORD_HASHER.hash(password)
 

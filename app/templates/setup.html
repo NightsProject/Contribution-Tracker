@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Create administrator · {{ app_name }}{% endblock %}
+{% block content %}
+<section>
+  <h1>Create the first administrator</h1>
+  <p class="muted">Initial setup is available only until an administrator account exists.</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="/setup">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="full_name">Name</label>
+    <input id="full_name" name="full_name" type="text" maxlength="200" value="{{ full_name }}" autocomplete="name" required>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" maxlength="320" value="{{ email }}" autocomplete="username" required>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required>
+    <label for="password_confirmation">Confirm password</label>
+    <input id="password_confirmation" name="password_confirmation" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required>
+    <button type="submit">Create administrator</button>
+  </form>
+  <p><a href="/login">Back to sign in</a></p>
+</section>
+{% endblock %}
