@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  {% include "partials/header.html" %}
-  <main>{% block content %}{% endblock %}</main>
+  <div class="{% if user is defined or administrator is defined %}app-layout{% else %}public-layout{% endif %}">
+    {% include "partials/header.html" %}
+    <main>{% block content %}{% endblock %}</main>
+  </div>
 </body>
 </html>

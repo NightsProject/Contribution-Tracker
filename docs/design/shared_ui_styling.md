@@ -14,8 +14,9 @@ limited to semantic classes for page-specific layout needs.
   filters use a responsive grid that collapses to one column on small screens.
 - Summary cards and forms adapt to mobile widths, with full-width action
   buttons on small screens.
-- Primary navigation stays on one swipeable row on narrow viewports so it
-  remains compact and every destination is accessible.
+- Signed-in pages place role-appropriate primary navigation in a collapsible
+  sidebar. The native disclosure control keeps the menu keyboard-accessible;
+  on narrow viewports the sidebar becomes a full-width collapsible panel.
 - Tables use labeled, keyboard-focusable horizontal scroll regions on narrow
   viewports rather than compressing columns into unreadable widths.
 - Focus-visible styling, reduced-motion support, and distinct success/error

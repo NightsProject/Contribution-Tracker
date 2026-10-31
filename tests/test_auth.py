@@ -74,6 +74,11 @@ def test_database_backed_login_and_csrf_protected_logout(client, test_db) -> Non
 
     dashboard = client.get("/dashboard")
     assert dashboard.status_code == 200
+    assert 'class="sidebar-disclosure" open' in dashboard.text
+    assert 'aria-label="Primary navigation"' in dashboard.text
+    assert 'href="/contributions"' in dashboard.text
+    assert 'href="/expenses"' in dashboard.text
+    assert 'action="/logout"' in dashboard.text
     logout = client.post(
         "/logout",
         data={"csrf_token": get_csrf(dashboard)},
@@ -105,6 +110,7 @@ def test_first_admin_can_be_created_through_one_time_setup(client, test_db) -> N
     dashboard = client.get("/dashboard")
     assert dashboard.status_code == 200
     assert 'href="/admin/users"' in dashboard.text
+    assert 'href="/admin/trash"' in dashboard.text
     with test_db() as db:
         administrator = db.scalar(select(User).where(User.email == "admin@example.com"))
         assert administrator is not None
