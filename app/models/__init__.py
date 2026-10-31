@@ -1,3 +1,4 @@
+from app.models.accounting import AccountingLock, AccountingReversal
 from app.models.audit_log import AuditLog
 from app.models.contribution import Contribution, ContributionStatus
 from app.models.expense import Expense, ExpenseStatus
@@ -12,6 +13,8 @@ from app.models.session import LoginAttempt, UserSession
 from app.models.user import User, UserRole
 
 __all__ = [
+    "AccountingLock",
+    "AccountingReversal",
     "AuditLog",
     "Contribution",
     "ContributionStatus",

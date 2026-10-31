@@ -5,8 +5,9 @@ Foundation for the role-based shared-pool tracker described in
 The application currently includes the FastAPI foundation, PostgreSQL
 persistence, database-backed sessions, Argon2id authentication, role-protected
 account management, contribution submissions and review, private proof-image
-storage, and versioned Alembic migrations. Expense workflows are not
-implemented yet.
+storage, a centralized accounting service with serialized pool updates,
+balance queries, audited posting/reversal operations, and versioned Alembic
+migrations. Expense entry and recurring workflows are not implemented yet.
 
 ## Run locally with Docker Compose
 

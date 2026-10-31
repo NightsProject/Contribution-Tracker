@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AuditLog, Contribution, ContributionStatus
 from app.models.common import utc_now
+from app.services.accounting import acquire_accounting_lock
 
 
 class ContributionStateError(Exception):
@@ -30,6 +31,8 @@ def review_contribution(
         "rejection_reason": None if approved else rejection_reason,
         "posted_at": reviewed_at if approved else None,
     }
+    if approved:
+        acquire_accounting_lock(db)
     result = db.execute(
         update(Contribution)
         .where(

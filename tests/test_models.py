@@ -6,6 +6,8 @@ import app.models  # noqa: F401
 
 def test_initial_schema_contains_design_entities() -> None:
     assert set(Base.metadata.tables) == {
+        "accounting_locks",
+        "accounting_reversals",
         "audit_logs",
         "contributions",
         "expenses",
