@@ -74,8 +74,9 @@ def test_database_backed_login_and_csrf_protected_logout(client, test_db) -> Non
 
     dashboard = client.get("/dashboard")
     assert dashboard.status_code == 200
-    assert 'class="sidebar-disclosure" open' in dashboard.text
-    assert 'aria-label="User navigation"' in dashboard.text
+    assert 'class="sidebar"' in dashboard.text
+    assert 'role="navigation"' in dashboard.text
+    assert 'aria-label="Sidebar navigation"' in dashboard.text
     assert 'href="/contributions"' in dashboard.text
     assert 'href="/expenses"' in dashboard.text
     assert 'action="/logout"' in dashboard.text

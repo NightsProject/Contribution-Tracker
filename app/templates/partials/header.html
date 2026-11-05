@@ -3,48 +3,40 @@
 {% elif administrator is defined %}
   {% set nav_user = administrator %}
 {% endif %}
-{% if nav_user is defined %}
-<aside class="sidebar" role="navigation" aria-label="Main navigation">
-  <details class="sidebar-disclosure" open>
-    <summary>
-      <strong class="sidebar-brand">{{ app_name }}</strong>
-      <span class="sidebar-toggle-label">Menu</span>
-    </summary>
-    <div class="sidebar-content">
-      <div class="sidebar-user">
-        <span class="sidebar-user-name">{{ nav_user.full_name }}</span>
-        <span class="sidebar-user-role" aria-label="{{ nav_user.role.value }}">{{ nav_user.role.value }}</span>
+
+<header class="topbar" role="banner">
+  <div class="topbar-brand">
+    <a href="/dashboard" class="topbar-logo" aria-label="{{ app_name }}">{{ app_name }}</a>
+  </div>
+
+  {% if nav_user is defined %}
+  <div class="topbar-user">
+    <details class="user-menu" id="user-menu">
+      <summary class="user-menu-trigger" aria-label="User menu for {{ nav_user.full_name }}">
+        <span class="user-avatar" aria-hidden="true">{{ nav_user.full_name | first | upper }}</span>
+        <span class="user-name" aria-hidden="true">{{ nav_user.full_name }}</span>
+        <span class="user-menu-chevron" aria-hidden="true">▼</span>
+      </summary>
+      <div class="user-menu-dropdown" role="menu">
+        <div class="user-menu-header">
+          <span class="user-menu-name">{{ nav_user.full_name }}</span>
+          <span class="user-menu-role">{{ nav_user.role.value }}</span>
+        </div>
+        <hr class="user-menu-divider">
+        <nav class="user-menu-nav" aria-label="Account navigation">
+          <a href="/account" role="menuitem">Account settings</a>
+        </nav>
+        <hr class="user-menu-divider">
+        <form method="post" action="/logout" class="user-menu-signout">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" role="menuitem" class="btn-signout">Sign out</button>
+        </form>
       </div>
-      <nav aria-label="User navigation">
-        <a href="/dashboard" {% if request.path == "/dashboard" %}aria-current="page"{% endif %}>Dashboard</a>
-        <a href="/contributions" {% if request.path == "/contributions" %}aria-current="page"{% endif %}>My contributions</a>
-        <a href="/expenses" {% if request.path == "/expenses" %}aria-current="page"{% endif %}>Expense history</a>
-      </nav>
-      {% if nav_user.role.value == "ADMIN" %}
-      <nav aria-label="Admin navigation">
-        <a href="/admin/contributions/pending" {% if request.path.startswith("/admin/contributions") %}aria-current="page"{% endif %}>Review contributions</a>
-        <a href="/admin/recurring-expenses" {% if request.path == "/admin/recurring-expenses" %}aria-current="page"{% endif %}>Recurring expenses</a>
-        <a href="/admin/payment-settings" {% if request.path == "/admin/payment-settings" %}aria-current="page"{% endif %}>Payment settings</a>
-        <a href="/admin/users" {% if request.path == "/admin/users" %}aria-current="page"{% endif %}>Manage accounts</a>
-        <a href="/admin/trash" {% if request.path == "/admin/trash" %}aria-current="page"{% endif %}>Trash</a>
-      </nav>
-      {% endif %}
-      <form class="inline sidebar-signout" method="post" action="/logout">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button type="submit">Sign out</button>
-      </form>
-    </div>
-  </details>
-</aside>
-{% elif is_public_page %}
-<header class="site-header">
-  <strong>{{ app_name }}</strong>
-  <nav class="public-header-nav">
-    <a href="/login">Sign in</a>
-  </nav>
+    </details>
+  </div>
+  {% elif is_public_page %}
+  <div class="topbar-actions">
+    <a href="/login" class="btn-signin">Sign in</a>
+  </div>
+  {% endif %}
 </header>
-{% else %}
-<header class="site-header">
-  <strong>{{ app_name }}</strong>
-</header>
-{% endif %}

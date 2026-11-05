@@ -7,9 +7,28 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <div class="{% if user is defined or administrator is defined %}app-layout{% else %}public-layout{% endif %}">
+  <div class="app-layout">
     {% include "partials/header.html" %}
-    <main>{% block content %}{% endblock %}</main>
+    <div class="app-body">
+      {% if user is defined or administrator is defined %}
+      <aside class="sidebar" role="navigation" aria-label="Sidebar navigation">
+        <nav class="sidebar-nav">
+          <a href="/dashboard" {% if request.path == "/dashboard" %}aria-current="page"{% endif %}>Dashboard</a>
+          <a href="/contributions" {% if request.path == "/contributions" %}aria-current="page"{% endif %}>My contributions</a>
+          <a href="/expenses" {% if request.path == "/expenses" %}aria-current="page"{% endif %}>Expense history</a>
+          {% if (user is defined and user.role.value == "ADMIN") or (administrator is defined) %}
+          <hr class="sidebar-divider">
+          <a href="/admin/contributions/pending" {% if request.path.startswith("/admin/contributions") %}aria-current="page"{% endif %}>Review contributions</a>
+          <a href="/admin/recurring-expenses" {% if request.path == "/admin/recurring-expenses" %}aria-current="page"{% endif %}>Recurring expenses</a>
+          <a href="/admin/payment-settings" {% if request.path == "/admin/payment-settings" %}aria-current="page"{% endif %}>Payment settings</a>
+          <a href="/admin/users" {% if request.path == "/admin/users" %}aria-current="page"{% endif %}>Manage accounts</a>
+          <a href="/admin/trash" {% if request.path == "/admin/trash" %}aria-current="page"{% endif %}>Trash</a>
+          {% endif %}
+        </nav>
+      </aside>
+      {% endif %}
+      <main>{% block content %}{% endblock %}</main>
+    </div>
   </div>
 </body>
 </html>
