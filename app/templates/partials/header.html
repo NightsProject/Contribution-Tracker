@@ -31,6 +31,13 @@
     </div>
   </details>
 </aside>
+{% elif is_public_page %}
+<header class="site-header">
+  <strong>{{ app_name }}</strong>
+  <nav class="public-header-nav">
+    <a href="/auth/login">Sign in</a>
+  </nav>
+</header>
 {% else %}
 <header class="site-header">
   <strong>{{ app_name }}</strong>

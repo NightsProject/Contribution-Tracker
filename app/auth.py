@@ -35,6 +35,28 @@ def current_session(request: Request, db: DbSession) -> UserSession:
     return user_session
 
 
+def public_session(request: Request, db: DbSession) -> UserSession:
+    """Get or create a session for public pages without requiring authentication."""
+    session_id = request.cookies.get("session_id")
+    user_session = None
+    if session_id and len(session_id) == 64 and all(character in "0123456789abcdef" for character in session_id):
+        user_session = db.get(UserSession, hash_session_id(session_id))
+    if user_session is not None:
+        expires_at = user_session.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
+            db.delete(user_session)
+            db.commit()
+            user_session = None
+
+    if user_session is None:
+        user_session, session_id = new_user_session()
+        db.add(user_session)
+        db.commit()
+    return user_session
+
+
 def signed_in_user(user_session: Annotated[UserSession, Depends(current_session)], db: DbSession) -> User:
     if user_session.user_id is None:
         raise login_redirect()

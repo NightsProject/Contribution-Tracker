@@ -12,6 +12,7 @@ from app.routes import (
     dashboard,
     expenses,
     payment_settings,
+    public,
     recurring_expenses,
     trash,
 )
@@ -47,6 +48,7 @@ app.mount(
 )
 
 app.include_router(auth.router)
+app.include_router(public.router)
 app.include_router(dashboard.router)
 app.include_router(contributions.router)
 app.include_router(expenses.router)
@@ -54,11 +56,6 @@ app.include_router(payment_settings.router)
 app.include_router(recurring_expenses.router)
 app.include_router(admin.router)
 app.include_router(trash.router)
-
-
-@app.get("/", tags=["status"])
-def root() -> RedirectResponse:
-    return RedirectResponse("/dashboard", status_code=303)
 
 
 @app.get("/healthz", tags=["status"])

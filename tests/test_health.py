@@ -27,11 +27,15 @@ def test_secure_cookie_configuration_enables_hsts(client, monkeypatch) -> None:
     assert response.headers["strict-transport-security"] == "max-age=31536000; includeSubDomains"
 
 
-def test_root_redirects_to_dashboard(client) -> None:
+def test_root_serves_landing_page(client) -> None:
     response = client.get("/")
 
-    assert response.status_code == 303
-    assert response.headers["location"] == "/dashboard"
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Pool Summary" in response.text
+    assert "Contribute" in response.text
+    assert "Transaction History" in response.text
+    assert "Sign in" in response.text
 
 
 def test_shared_stylesheet_is_served_with_css_content_type(client) -> None:

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}{{ app_name }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ app_name }}</h1>
+  <p class="hero-tagline">A shared pool for collective contributions and expenses. Transparent, auditable, community-driven.</p>
+</section>
+
+<section aria-label="Pool summary">
+  <h2>Pool Summary</h2>
+  <div class="summary-grid">
+    <article class="card">
+      <h3>Available Balance</h3>
+      <p class="amount positive">₱{{ format_amount(balance.available_centavos) }}</p>
+    </article>
+    <article class="card">
+      <h3>Total Raised</h3>
+      <p class="amount positive">₱{{ format_amount(approved_total) }}</p>
+    </article>
+    <article class="card">
+      <h3>Total Spent</h3>
+      <p class="amount negative">₱{{ format_amount(posted_total) }}</p>
+    </article>
+    <article class="card">
+      <h3>Contributors</h3>
+      <p class="amount">{{ contributor_count }}</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <h2>Contribute</h2>
+  {% if submitted %}
+    <p role="status" class="success">Contribution submitted for administrator review. It will appear in the transaction history once approved.</p>
+  {% endif %}
+  {% if error %}
+    <p class="error" role="alert">{{ error }}</p>
+  {% endif %}
+  <form method="post" action="/" enctype="multipart/form-data" class="contribution-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+      <label for="amount">Amount (PHP)</label>
+      <input id="amount" name="amount" type="number" min="0.01" max="{{ max_amount_php }}" step="0.01" inputmode="decimal" required placeholder="e.g. 500.00">
+    </div>
+    <div class="field">
+      <label for="reference">Payment Reference</label>
+      <input id="reference" name="payment_reference" maxlength="200" required placeholder="Transaction ID, check number, or description">
+    </div>
+    <div class="field">
+      <label for="payment-date">Payment Date</label>
+      <input id="payment-date" name="payment_date" type="date" required>
+    </div>
+    <div class="field">
+      <label for="proof">Proof Image (optional; JPEG, PNG, or WebP)</label>
+      <input id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp">
+    </div>
+    <button type="submit" class="btn-primary">Submit for Review</button>
+  </form>
+  <p class="muted">Submissions are reviewed by administrators before being added to the pool. Anonymous submissions are attributed to "Anonymous Contributor".</p>
+</section>
+
+<section>
+  <h2>How to Contribute</h2>
+  {% if payment_settings %}
+    {% if payment_settings.payment_method %}<p><strong>Method:</strong> {{ payment_settings.payment_method }}</p>{% endif %}
+    {% if payment_settings.account_name %}<p><strong>Account Name:</strong> {{ payment_settings.account_name }}</p>{% endif %}
+    {% if payment_settings.account_identifier %}<p><strong>Account:</strong> {{ payment_settings.account_identifier }}</p>{% endif %}
+    {% if payment_settings.instructions %}<p class="instructions">{{ payment_settings.instructions }}</p>{% endif %}
+    {% if payment_settings.qr_file_key %}
+      <p><img src="/public/qr" alt="Payment QR code" width="240" height="240"></p>
+    {% endif %}
+  {% else %}
+    <p class="muted">Payment instructions have not been configured yet.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Transaction History</h2>
+  <form class="filter-form" method="get" action="/">
+    <div class="field">
+      <label for="search">Search account, reference, or description</label>
+      <input id="search" name="q" value="{{ filters.q }}">
+    </div>
+    <div class="field">
+      <label for="account">Account name</label>
+      <input id="account" name="account" value="{{ filters.account }}">
+    </div>
+    <div class="field">
+      <label for="type">Type</label>
+      <select id="type" name="type">
+      <option value="">All</option>
+      <option value="contribution" {% if filters.type == "contribution" %}selected{% endif %}>Contributions</option>
+      <option value="expense" {% if filters.type == "expense" %}selected{% endif %}>Expenses</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+      <option value="">All</option>
+      <option value="APPROVED" {% if filters.status == "APPROVED" %}selected{% endif %}>Approved</option>
+      <option value="POSTED" {% if filters.status == "POSTED" %}selected{% endif %}>Posted</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="from-date">From</label>
+      <input id="from-date" name="from_date" type="date" value="{{ filters.from_date }}">
+    </div>
+    <div class="field">
+      <label for="to-date">To</label>
+      <input id="to-date" name="to_date" type="date" value="{{ filters.to_date }}">
+    </div>
+    <button type="submit">Filter</button>
+  </form>
+  {% if transactions %}
+  <div class="table-scroll" role="region" aria-label="Transaction history" tabindex="0">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Account</th>
+          <th>Type</th>
+          <th>Description / Reference</th>
+          <th>Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for transaction in transactions %}
+        <tr>
+          <td>{{ format_timestamp(transaction.event_at) }}</td>
+          <td>{{ transaction.account }}</td>
+          <td>{{ transaction.type }}</td>
+          <td>
+            {{ transaction.description }}
+          </td>
+          <td>{% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}</td>
+          <td>{{ transaction.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>No transactions match the selected filters.</p>
+  {% endif %}
+  <p>Page {{ page }} of {{ page_count }} · {{ total_transactions }} transactions</p>
+  <nav aria-label="Transaction pages">
+    {% if page > 1 %}
+    <a href="/?page={{ page - 1 }}&q={{ filters.q|urlencode }}&account={{ filters.account|urlencode }}&type={{ filters.type|urlencode }}&status={{ filters.status|urlencode }}&from_date={{ filters.from_date|urlencode }}&to_date={{ filters.to_date|urlencode }}">Previous</a>
+    {% endif %}
+    {% if page < page_count %}
+    <a href="/?page={{ page + 1 }}&q={{ filters.q|urlencode }}&account={{ filters.account|urlencode }}&type={{ filters.type|urlencode }}&status={{ filters.status|urlencode }}&from_date={{ filters.from_date|urlencode }}&to_date={{ filters.to_date|urlencode }}">Next</a>
+    {% endif %}
+  </nav>
+</section>
+{% endblock %}
