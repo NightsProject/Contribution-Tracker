@@ -31,7 +31,7 @@
 <section>
   <h2>Contribute</h2>
   {% if submitted %}
-    <p role="status" class="success">Contribution submitted for administrator review. It will appear in the transaction history once approved.</p>
+    <p role="status" class="success">Contribution submitted for administrator confirmation. It will appear in the transaction history once approved.</p>
   {% endif %}
   {% if error %}
     <p class="error" role="alert">{{ error }}</p>
@@ -54,7 +54,7 @@
       <label for="proof">Proof Image (optional; JPEG, PNG, or WebP)</label>
       <input id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp">
     </div>
-    <button type="submit" class="btn-primary">Submit for Review</button>
+    <button type="submit" class="btn-primary">Submit for Confirmation</button>
   </form>
   <p class="muted">Submissions are reviewed by administrators before being added to the pool. Anonymous submissions are attributed to "Anonymous Contributor".</p>
 </section>

@@ -1,7 +1,7 @@
 # Plan: Public Landing Page & Anonymous Contributions
 
 ## Goal and Scope
-Implement a public landing page at `/` that allows anonymous visitors to view the pool summary, transaction history, and submit contributions for admin review. The root route previously redirected to `/dashboard` (auth-required); now it serves a public page.
+Implement a public landing page at `/` that allows anonymous visitors to view the pool summary, transaction history, and submit contributions for admin confirmation. The root route previously redirected to `/dashboard` (auth-required); now it serves a public page.
 
 **Non-goals:**
 - V2 project features (projects, memberships, join links)

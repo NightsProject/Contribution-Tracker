@@ -2,7 +2,7 @@
 {% block title %}My contributions · {{ app_name }}{% endblock %}
 {% block content %}
 <h1>My contributions</h1>
-{% if submitted %}<p role="status">Contribution submitted for administrator review.</p>{% endif %}
+{% if submitted %}<p role="status">Contribution submitted for administrator confirmation.</p>{% endif %}
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
 <section>
@@ -17,7 +17,7 @@
     <input id="payment-date" name="payment_date" type="date" required>
     <label for="proof">Proof image (optional; JPEG, PNG, or WebP, up to {{ max_upload_size }})</label>
     <input id="proof" name="proof" type="file" accept="image/jpeg,image/png,image/webp">
-    <button type="submit">Submit for review</button>
+    <button type="submit">Submit for confirmation</button>
   </form>
 </section>
 
