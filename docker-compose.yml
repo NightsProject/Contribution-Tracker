@@ -2,39 +2,115 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: contribution_tracker
-      POSTGRES_USER: contribution
-      POSTGRES_PASSWORD: change-me-for-local-development
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: ${POSTGRES_DB:-contribution_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-contribution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U contribution -d contribution_tracker"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
-      retries: 5
-    ports:
-      - "5432:5432"
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     environment:
       POSTGRES_HOST: db
-      POSTGRES_DB: contribution_tracker
-      POSTGRES_USER: contribution
-      POSTGRES_PASSWORD: change-me-for-local-development
+      POSTGRES_DB: ${POSTGRES_DB:-contribution_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-contribution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_PORT: 5432
-      SESSION_COOKIE_SECURE: "false"
-      WEB_PORT: 8000
-      APP_DOMAIN: localhost
-    ports:
-      - "8000:8000"
+      UPLOADS_DIR: /app/uploads
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_MAX_AGE_SECONDS: ${SESSION_MAX_AGE_SECONDS:-28800}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-5242880}
+      WEB_PORT: ${WEB_PORT:-8000}
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8000}:8000"
     volumes:
-      - ./uploads:/app/uploads
+      - uploads:/app/uploads
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  scheduler:
+    build: .
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.scheduler.worker"]
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-contribution_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-contribution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PORT: 5432
+      UPLOADS_DIR: /app/uploads
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_MAX_AGE_SECONDS: ${SESSION_MAX_AGE_SECONDS:-28800}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-5242880}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - uploads:/app/uploads
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  proxy:
+    image: caddy:2-alpine
+    profiles: ["production"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN for production HTTPS}
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
   postgres_data:
+  uploads:
+  caddy_data:
+  caddy_config:
