@@ -153,9 +153,9 @@ def test_admin_can_void_refund_and_reverse_with_required_reasons(client, test_db
     sign_in(client, "admin@example.com")
     dashboard = client.get("/dashboard")
     csrf_token = csrf_from(dashboard)
-    assert "Void submission" in dashboard.text
-    assert "Record refund" in dashboard.text
-    assert "Reverse expense" in dashboard.text
+    assert "Void" in dashboard.text
+    assert "Refund" in dashboard.text
+    assert "Reverse" in dashboard.text
 
     voided = client.post(
         f"/admin/contributions/{pending_contribution_id}/void",

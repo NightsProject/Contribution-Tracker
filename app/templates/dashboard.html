@@ -1,22 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
 {% block content %}
-<section>
+<section class="dashboard-welcome">
   <h1>Dashboard</h1>
   <p>Welcome, <strong>{{ user.full_name }}</strong>.</p>
 </section>
 
-<section aria-label="Pool summary">
+<section aria-label="Pool summary" class="dashboard-summary">
   <h2>Pool summary</h2>
   <div class="summary-grid">
-    <article class="card"><h3>Available balance</h3><p>₱{{ format_amount(balance.available_centavos) }}</p></article>
-    <article class="card"><h3>Approved contributions</h3><p>₱{{ format_amount(approved_total) }}</p></article>
-    <article class="card"><h3>Posted expenses</h3><p>₱{{ format_amount(posted_total) }}</p></article>
-    <article class="card"><h3>Contributors</h3><p>{{ contributor_count }}</p></article>
+    <article class="card summary-card--balance">
+      <h3>Available balance</h3>
+      <p>₱{{ format_amount(balance.available_centavos) }}</p>
+    </article>
+    <article class="card">
+      <h3>Approved contributions</h3>
+      <p>₱{{ format_amount(approved_total) }}</p>
+    </article>
+    <article class="card">
+      <h3>Posted expenses</h3>
+      <p>₱{{ format_amount(posted_total) }}</p>
+    </article>
+    <article class="card">
+      <h3>Contributors</h3>
+      <p>{{ contributor_count }}</p>
+    </article>
   </div>
 </section>
 
-<section>
+<section class="dashboard-actions">
+  <h2>Quick actions</h2>
+  <div class="action-links">
+    <a href="/contributions" class="action-link">
+      <span class="action-link-label">Submit contribution</span>
+      <span class="action-link-desc">Record a new payment</span>
+    </a>
+    <a href="/expenses" class="action-link">
+      <span class="action-link-label">Log expense</span>
+      <span class="action-link-desc">Record a new expense</span>
+    </a>
+    {% if payment_settings and payment_settings.payment_method %}
+    <a href="#payment-info" class="action-link">
+      <span class="action-link-label">Payment details</span>
+      <span class="action-link-desc">View contribution instructions</span>
+    </a>
+    {% endif %}
+  </div>
+</section>
+
+<section aria-label="Payment information" id="payment-info">
   <h2>How to contribute</h2>
   {% if payment_settings %}
     {% if payment_settings.payment_method %}<p><strong>Method:</strong> {{ payment_settings.payment_method }}</p>{% endif %}
@@ -32,20 +64,25 @@
   <p><a href="/contributions">Submit a contribution or review your submissions.</a></p>
 </section>
 
-<section>
-  <h2>Transaction history</h2>
+<section class="dashboard-transactions">
+  <header class="transactions-header">
+    <h2>Transaction history</h2>
+    <a href="/contributions" class="btn-secondary">View my contributions</a>
+  </header>
+
   {% if transaction_action == "voided" %}<p role="status">Contribution voided. Its reason is recorded and it did not affect the pool balance.</p>{% endif %}
   {% if transaction_action == "refunded" %}<p role="status">Contribution refund recorded and reversed in the ledger. Process any actual payment refund separately.</p>{% endif %}
   {% if transaction_action == "expense_reversed" %}<p role="status">Expense reversed. Its reason is recorded.</p>{% endif %}
   {% if user.role.value == "ADMIN" %}<p class="muted">These actions record ledger corrections; they do not send or return money.</p>{% endif %}
+
   <form class="filter-form" method="get" action="/dashboard">
     <div class="field">
-      <label for="search">Search account, reference, or description</label>
-      <input id="search" name="q" value="{{ filters.q }}">
+      <label for="search">Search</label>
+      <input id="search" name="q" value="{{ filters.q }}" placeholder="Account, reference, description">
     </div>
     <div class="field">
-      <label for="account">Account name</label>
-      <input id="account" name="account" value="{{ filters.account }}">
+      <label for="account">Account</label>
+      <input id="account" name="account" value="{{ filters.account }}" placeholder="Account name">
     </div>
     <div class="field">
       <label for="type">Type</label>
@@ -72,46 +109,59 @@
       <label for="to-date">To</label>
       <input id="to-date" name="to_date" type="date" value="{{ filters.to_date }}">
     </div>
-    <button type="submit">Filter transactions</button>
+    <button type="submit">Filter</button>
   </form>
+
   {% if transactions %}
   <div class="table-scroll" role="region" aria-label="Transaction history" tabindex="0">
     <table>
-      <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Description/reference</th><th>Amount</th><th>Status</th>{% if user.role.value == "ADMIN" %}<th>Actions</th>{% endif %}</tr></thead>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Account</th>
+          <th>Type</th>
+          <th>Description / Reference</th>
+          <th>Amount</th>
+          <th>Status</th>
+          {% if user.role.value == "ADMIN" %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
       <tbody>
         {% for transaction in transactions %}
         <tr>
           <td>{{ format_timestamp(transaction.event_at) }}</td>
           <td>{{ transaction.account }}</td>
-          <td>{{ transaction.type }}</td>
+          <td><span class="type-badge type-badge--{{ transaction.type|lower }}">{{ transaction.type }}</span></td>
           <td>
             {{ transaction.description }}
-            {% if transaction.reason %}<br><span class="muted">Reason: {{ transaction.reason }}</span>{% endif %}
+            {% if transaction.reason %}<br><span class="muted reason">Reason: {{ transaction.reason }}</span>{% endif %}
           </td>
-          <td>{% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}</td>
-          <td>{{ transaction.status }}</td>
+          <td class="amount {% if transaction.amount_centavos < 0 %}amount--negative{% else %}amount--positive{% endif %}">
+            {% if transaction.amount_centavos < 0 %}−{% else %}+{% endif %}₱{{ format_amount(transaction.amount_centavos|abs) }}
+          </td>
+          <td><span class="status-badge status-badge--{{ transaction.status|lower }}">{{ transaction.status }}</span></td>
           {% if user.role.value == "ADMIN" %}
           <td>
             {% if transaction.type == "contribution" and transaction.status == "PENDING" %}
-            <form method="post" action="/admin/contributions/{{ transaction.id }}/void">
+            <form method="post" action="/admin/contributions/{{ transaction.id }}/void" class="inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <label for="reason-{{ transaction.id }}">Void reason</label>
-              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required>
-              <button type="submit">Void submission</button>
+              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required placeholder="Reason for voiding">
+              <button type="submit" class="btn-danger">Void</button>
             </form>
             {% elif transaction.type == "contribution" and transaction.status == "APPROVED" %}
-            <form method="post" action="/admin/contributions/{{ transaction.id }}/refund">
+            <form method="post" action="/admin/contributions/{{ transaction.id }}/refund" class="inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <label for="reason-{{ transaction.id }}">Refund reason</label>
-              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required>
-              <button type="submit">Record refund</button>
+              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required placeholder="Reason for refund">
+              <button type="submit" class="btn-danger">Refund</button>
             </form>
             {% elif transaction.type == "expense" and transaction.status == "POSTED" %}
-            <form method="post" action="/admin/expenses/{{ transaction.id }}/reverse">
+            <form method="post" action="/admin/expenses/{{ transaction.id }}/reverse" class="inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <label for="reason-{{ transaction.id }}">Reversal reason</label>
-              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required>
-              <button type="submit">Reverse expense</button>
+              <input id="reason-{{ transaction.id }}" name="reason" maxlength="1000" required placeholder="Reason for reversal">
+              <button type="submit" class="btn-danger">Reverse</button>
             </form>
             {% endif %}
           </td>
@@ -122,10 +172,11 @@
     </table>
   </div>
   {% else %}
-  <p>No transactions match the selected filters.</p>
+  <p class="empty-state">No transactions match the selected filters.</p>
   {% endif %}
-  <p>Page {{ page }} of {{ page_count }} · {{ total_transactions }} transactions</p>
-  <nav aria-label="Transaction pages">
+
+  <p class="pagination-info">Page {{ page }} of {{ page_count }} · {{ total_transactions }} transactions</p>
+  <nav aria-label="Transaction pages" class="pagination">
     {% if page > 1 %}
     <a href="/dashboard?page={{ page - 1 }}&q={{ filters.q|urlencode }}&account={{ filters.account|urlencode }}&type={{ filters.type|urlencode }}&status={{ filters.status|urlencode }}&from_date={{ filters.from_date|urlencode }}&to_date={{ filters.to_date|urlencode }}">Previous</a>
     {% endif %}

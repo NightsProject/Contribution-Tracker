@@ -4,27 +4,32 @@
   {% set nav_user = administrator %}
 {% endif %}
 {% if nav_user is defined %}
-<aside class="sidebar">
+<aside class="sidebar" role="navigation" aria-label="Main navigation">
   <details class="sidebar-disclosure" open>
     <summary>
       <strong class="sidebar-brand">{{ app_name }}</strong>
       <span class="sidebar-toggle-label">Menu</span>
     </summary>
     <div class="sidebar-content">
-      <span class="sidebar-user">{{ nav_user.full_name }} · {{ nav_user.role.value }}</span>
-      <nav aria-label="Primary navigation">
-      <a href="/dashboard">Dashboard</a>
-      <a href="/contributions">My contributions</a>
-      <a href="/expenses">Expense history</a>
-      {% if nav_user.role.value == "ADMIN" %}
-        <a href="/admin/contributions/pending">Review contributions</a>
-        <a href="/admin/recurring-expenses">Recurring expenses</a>
-        <a href="/admin/payment-settings">Payment settings</a>
-        <a href="/admin/users">Manage accounts</a>
-        <a href="/admin/trash">Trash</a>
-      {% endif %}
+      <div class="sidebar-user">
+        <span class="sidebar-user-name">{{ nav_user.full_name }}</span>
+        <span class="sidebar-user-role" aria-label="{{ nav_user.role.value }}">{{ nav_user.role.value }}</span>
+      </div>
+      <nav aria-label="User navigation">
+        <a href="/dashboard" {% if request.path == "/dashboard" %}aria-current="page"{% endif %}>Dashboard</a>
+        <a href="/contributions" {% if request.path == "/contributions" %}aria-current="page"{% endif %}>My contributions</a>
+        <a href="/expenses" {% if request.path == "/expenses" %}aria-current="page"{% endif %}>Expense history</a>
       </nav>
-      <form class="inline" method="post" action="/logout">
+      {% if nav_user.role.value == "ADMIN" %}
+      <nav aria-label="Admin navigation">
+        <a href="/admin/contributions/pending" {% if request.path.startswith("/admin/contributions") %}aria-current="page"{% endif %}>Review contributions</a>
+        <a href="/admin/recurring-expenses" {% if request.path == "/admin/recurring-expenses" %}aria-current="page"{% endif %}>Recurring expenses</a>
+        <a href="/admin/payment-settings" {% if request.path == "/admin/payment-settings" %}aria-current="page"{% endif %}>Payment settings</a>
+        <a href="/admin/users" {% if request.path == "/admin/users" %}aria-current="page"{% endif %}>Manage accounts</a>
+        <a href="/admin/trash" {% if request.path == "/admin/trash" %}aria-current="page"{% endif %}>Trash</a>
+      </nav>
+      {% endif %}
+      <form class="inline sidebar-signout" method="post" action="/logout">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit">Sign out</button>
       </form>
