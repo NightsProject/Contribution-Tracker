@@ -1,4 +1,4 @@
-# Contribution & Expense Tracker
+# Contrib
 
 Foundation for the role-based shared-pool tracker described in
 [`docs/design/contribution_expense_tracker_design_document.docx`](docs/design/contribution_expense_tracker_design_document.docx).
